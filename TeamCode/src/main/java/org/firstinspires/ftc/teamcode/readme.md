@@ -129,3 +129,7 @@ Note: Some names start with "Team" and others start with "team".  This is intent
 5)  Add:    include ':Team0417' to the "/settings.gradle" file.
     
 6)  Open up Android Studios and clean out any old files by using the menu to "Build/Clean Project""
+
+
+This is the last state of the project for the 2025/6 ftc season codebase, but the first 
+commit for the Crawler library!
