@@ -3,6 +3,8 @@ package org.firstinspires.ftc.teamcode.Crawler.core;
 import com.arcrobotics.ftclib.hardware.motors.MotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
+import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.CrawlerLocaliser;
+import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.DevLocaliser;
 
 public class CrawlerRobot {
 
@@ -21,6 +23,9 @@ public class CrawlerRobot {
     public final double centerWheelOffset;
     public final String pinpointDeviceName;
 
+    // DevLocaliser instance
+    public final CrawlerLocaliser devLocaliser;
+
     private CrawlerRobot(Builder builder) {
         this.frontRight  = new MotorEx(builder.hwMap, builder.frontRightName);
         this.frontLeft   = new MotorEx(builder.hwMap, builder.frontLeftName);
@@ -35,6 +40,9 @@ public class CrawlerRobot {
         this.trackWidth        = builder.trackWidth;
         this.centerWheelOffset = builder.centerWheelOffset;
         this.pinpointDeviceName = builder.pinpointDeviceName;
+
+        //DevLocaliser for dev/testing
+        this.devLocaliser = new DevLocaliser();
     }
 
     public enum Localisation {
@@ -60,7 +68,6 @@ public class CrawlerRobot {
     public interface ILocaliserStage {
         IReadyStage withMotorEncoders();
         IDeadWheelStage withThreeDeadWheels(String left, String right, String center);
-
         ITwoDeadWheelStage withTwoDeadWheels(String left, String right);
         IPinpointStage withPinpoint(String deviceName);
     }
