@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.Crawler.core.utils;
 
-public class CurvePoint {
+public class Waypoint {
     public double x;
     public double y;
     public double moveSpeed;
@@ -10,9 +10,9 @@ public class CurvePoint {
     public double slowDownTurnRadians;
     public double slowDownTurnAmount;
 
-    public CurvePoint(  double x, double y, double moveSpeed,
-                        double turnSpeed, double followDistance,
-                        double slowDownTurnRadians, double slowDownTurnAmount
+    public Waypoint(double x, double y, double moveSpeed,
+                    double turnSpeed, double followDistance,
+                    double slowDownTurnRadians, double slowDownTurnAmount
     )
     {
         this.x = x;
@@ -24,7 +24,7 @@ public class CurvePoint {
         this.slowDownTurnAmount = slowDownTurnAmount;
     }
 
-    public CurvePoint(CurvePoint thisPoint) {
+    public Waypoint(Waypoint thisPoint) {
         x = thisPoint.x;
         y = thisPoint.y;
         moveSpeed = thisPoint.moveSpeed;

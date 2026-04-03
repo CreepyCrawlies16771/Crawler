@@ -2,12 +2,12 @@ package org.firstinspires.ftc.teamcode.Crawler.core.utils;
 
 import java.util.ArrayList;
 
-public class MathFunctions {
+public class CrawlerMath {
 
     /**
      * Makes sure an angle is within the range -180 to 180 degrees
      */
-    public static double AngleWrap(double angle) {
+    public static double wrapAngle(double angle) {
 
         while (angle < -180) angle += 360;
         while (angle > 180) angle -= 360;
@@ -15,7 +15,7 @@ public class MathFunctions {
         return angle;
     }
 
-    public static double Clip(double value, double min, double max) {
+    public static double clamp(double value, double min, double max) {
         return Math.max(min, Math.min(max, value));
     }
 
