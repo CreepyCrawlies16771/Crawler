@@ -48,4 +48,8 @@ public class Vector2d {
     public String toString() {
         return "(" + x + ", " + y + ")";
     }
+
+    public Point toPoint() {
+        return new Point(x, y);
+    }
 }

@@ -6,6 +6,7 @@ import org.firstinspires.ftc.teamcode.Crawler.Dashboard.DashboardFieldViewUtils;
 import org.firstinspires.ftc.teamcode.Crawler.RobotConfig;
 import org.firstinspires.ftc.teamcode.Crawler.core.CrawlerRobot;
 import org.firstinspires.ftc.teamcode.Crawler.core.utils.CrawlerMath;
+import org.firstinspires.ftc.teamcode.Crawler.core.utils.Point;
 import org.firstinspires.ftc.teamcode.Crawler.core.utils.Vector2d;
 import org.firstinspires.ftc.teamcode.Crawler.core.utils.Waypoint;
 
@@ -25,9 +26,11 @@ public class RobotMovement {
         updatePose();
     }
 
-    // -----------------------------------------------------------------------
-    // Public entry point — call every loop cycle
-    // -----------------------------------------------------------------------
+    /***
+     * The entry point for the Pure Persuit follower.
+     * @param allPoints
+     * @param followAngle
+     */
 
     public void follow(List<Waypoint> allPoints, double followAngle) {
         updatePose();
@@ -40,17 +43,12 @@ public class RobotMovement {
                     allPoints.get(i + 1).x, allPoints.get(i + 1).y,
                     DashboardFieldViewUtils.FieldColor.BLUE);
         }
-
-        // FIX: extend path — add a virtual point beyond the last waypoint
-        // so the robot always has a lookahead target at the end of the path
         List<Waypoint> extended = extendPath(allPoints);
 
-        // FIX: dynamic lookahead — find which segment the robot is on,
-        // use that segment's followDistance instead of always allPoints.get(0)
         double dynamicFollowDistance = getDynamicFollowDistance(extended);
 
         Waypoint followMe = getFollowPointPath(extended,
-                new Vector2d(worldX, worldY),
+                new Vector2d(worldX, worldY).toPoint(),
                 dynamicFollowDistance);
 
         DashboardFieldViewUtils.drawRobot(packet,
@@ -60,10 +58,12 @@ public class RobotMovement {
         goToPosition(followMe.x, followMe.y, followMe.moveSpeed, followAngle, followMe.turnSpeed);
     }
 
-    // -----------------------------------------------------------------------
-    // Path extension — fixes the "robot stops short" problem
-    // Extends the final segment by followDistance beyond the last waypoint
-    // -----------------------------------------------------------------------
+    /***
+     * Path extension — fixes the "robot stops short" problem
+     * Extends the final segment by followDistance beyond the last waypoint
+     * @param original
+     * @return
+     */
 
     private List<Waypoint> extendPath(List<Waypoint> original) {
         if (original.size() < 2) return original;
@@ -92,10 +92,12 @@ public class RobotMovement {
         return extended;
     }
 
-    // -----------------------------------------------------------------------
-    // Dynamic lookahead — fixes jitter from always using first waypoint's radius
-    // Finds the closest segment to the robot and uses its followDistance
-    // -----------------------------------------------------------------------
+    /***
+     * Dynamic lookahead — fixes jitter from always using first waypoint's radius
+     * Finds the closest segment to the robot and uses its followDistance
+     * @param points
+     * @return
+     */
 
     private double getDynamicFollowDistance(List<Waypoint> points) {
         double closestDist  = Double.MAX_VALUE;
@@ -118,12 +120,16 @@ public class RobotMovement {
         return followRadius;
     }
 
-    // -----------------------------------------------------------------------
-    // Lookahead point — finds the best intersection on the path circle
-    // -----------------------------------------------------------------------
+    /***
+     * Lookahead point — finds the best intersection on the path circle
+     * @param pathPoints
+     * @param robotLocation
+     * @param followRadius
+     * @return
+     */
 
     public Waypoint getFollowPointPath(List<Waypoint> pathPoints,
-                                       Vector2d robotLocation,
+                                       Point robotLocation,
                                        double followRadius) {
         Waypoint followMe = new Waypoint(pathPoints.get(0));
 
@@ -131,14 +137,14 @@ public class RobotMovement {
             Waypoint startLine = pathPoints.get(i);
             Waypoint endLine   = pathPoints.get(i + 1);
 
-            List<Vector2d> intersections = CrawlerMath.lineCircleIntersection(
+            List<Point> intersections = CrawlerMath.lineCircleIntersection(
                     robotLocation, followRadius,
-                    startLine.toVector(), endLine.toVector()
+                    startLine.toPoint(), endLine.toPoint()
             );
 
             double closestAngle = Double.MAX_VALUE;
 
-            for (Vector2d intersection : intersections) {
+            for (Point intersection : intersections) {
                 double angle      = Math.atan2(intersection.y - worldY, intersection.x - worldX);
                 double deltaAngle = Math.abs(CrawlerMath.wrapAngle(angle - worldHeading));
 
@@ -156,9 +162,14 @@ public class RobotMovement {
         return followMe;
     }
 
-    // -----------------------------------------------------------------------
-    // goToPosition — computes and applies motor powers
-    // -----------------------------------------------------------------------
+    /***
+     * goToPosition — computes and applies motor powers
+     * @param x
+     * @param y
+     * @param moveSpeed
+     * @param preferredAngle
+     * @param turnSpeed
+     */
 
     public void goToPosition(double x, double y,
                              double moveSpeed,

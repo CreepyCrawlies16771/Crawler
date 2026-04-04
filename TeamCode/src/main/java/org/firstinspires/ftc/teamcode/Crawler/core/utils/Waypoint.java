@@ -13,7 +13,7 @@ public class Waypoint {
     public final double slowDownTurnAmount;
     public final Runnable onReach;
 
-    // internal — mutable only by FOFollower
+    // internal — mutable only by Field Follower
     double pointLength;
 
     private Waypoint(Builder builder) {
@@ -43,17 +43,24 @@ public class Waypoint {
         return new Vector2d(x, y);
     }
 
-    // -----------------------------------------------------------------------
-    // Factory entry point
-    // -----------------------------------------------------------------------
+    public Point toPoint() {
+        return new Point(x, y);
+    }
+
+    /***
+     * Factory Entry Point
+     * @param x
+     * @param y
+     * @return
+     */
 
     public static Builder at(double x, double y) {
         return new Builder(x, y);
     }
 
-    // -----------------------------------------------------------------------
-    // Builder
-    // -----------------------------------------------------------------------
+    /**
+     *The Waypoint Builder
+     */
 
     public static class Builder {
         private final double x;
@@ -65,7 +72,7 @@ public class Waypoint {
         private double slowDownTurnAmount  = RobotConfig.FieldOriented.DEFAULT_SLOW_DOWN_TURN_AMOUNT;
         private Runnable onReach          = null;
 
-        private Builder(double x, double y) {
+        public Builder(double x, double y) {
             this.x = x;
             this.y = y;
         }

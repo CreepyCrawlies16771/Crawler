@@ -3,8 +3,13 @@ package org.firstinspires.ftc.teamcode.Crawler.core;
 import com.arcrobotics.ftclib.hardware.motors.MotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
+
+import org.firstinspires.ftc.teamcode.Crawler.RobotConfig;
 import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.CrawlerLocaliser;
+import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.DeadWheelLocaliser;
 import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.DevLocaliser;
+import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.MotorEncoderLocaliser;
+import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.PinpointLocaliser;
 
 public class CrawlerRobot {
 
@@ -15,18 +20,18 @@ public class CrawlerRobot {
     public final IMU imu;
     public final Localisation localisation;
 
-    // Localiser data — only populated for the relevant localiser type
-    public final MotorEx leftEncoder;
-    public final MotorEx rightEncoder;
-    public final MotorEx centerEncoder;
-    public final double trackWidth;
-    public final double centerWheelOffset;
-    public final String pinpointDeviceName;
+    // The active localiser — use this everywhere in Crawler internals
+    public final CrawlerLocaliser localiser;
 
-    // DevLocaliser instance
-    public final CrawlerLocaliser devLocaliser;
+    // Raw encoder references — kept for tuning OpModes that need direct access
+    final MotorEx leftEncoder;
+    final MotorEx rightEncoder;
+    final MotorEx centerEncoder;
+    final double trackWidth;
+    final double centerWheelOffset;
+    final String pinpointDeviceName;
 
-    private CrawlerRobot(Builder builder) {
+    protected CrawlerRobot(Builder builder) {
         this.frontRight  = new MotorEx(builder.hwMap, builder.frontRightName);
         this.frontLeft   = new MotorEx(builder.hwMap, builder.frontLeftName);
         this.backRight   = new MotorEx(builder.hwMap, builder.backRightName);
@@ -34,16 +39,105 @@ public class CrawlerRobot {
         this.imu         = builder.hwMap.get(IMU.class, builder.imuName);
         this.localisation = builder.localisation;
 
-        this.leftEncoder       = builder.leftEncoder;
-        this.rightEncoder      = builder.rightEncoder;
-        this.centerEncoder     = builder.centerEncoder;
-        this.trackWidth        = builder.trackWidth;
-        this.centerWheelOffset = builder.centerWheelOffset;
+        this.leftEncoder        = builder.leftEncoder;
+        this.rightEncoder       = builder.rightEncoder;
+        this.centerEncoder      = builder.centerEncoder;
+        this.trackWidth         = builder.trackWidth;
+        this.centerWheelOffset  = builder.centerWheelOffset;
         this.pinpointDeviceName = builder.pinpointDeviceName;
 
-        //DevLocaliser for dev/testingaa
-        this.devLocaliser = new DevLocaliser();
+        // Build the correct localiser from the builder's chosen type
+        this.localiser = buildLocaliser(builder);
     }
+
+    // -----------------------------------------------------------------------
+    // Localiser factory — reads builder state, constructs the right impl
+    // -----------------------------------------------------------------------
+
+    private CrawlerLocaliser buildLocaliser(Builder builder) {
+        if (builder.localisation == null) {
+            // No localiser configured — fall back to dev localiser
+            // This lets tuning OpModes run without a real localiser
+            return new DevLocaliser();
+        }
+
+        switch (builder.localisation) {
+            case ThreeDeadWheel:
+                return new DeadWheelLocaliser(
+                        builder.leftEncoder,
+                        builder.rightEncoder,
+                        builder.centerEncoder,
+                        builder.trackWidth,
+                        builder.centerWheelOffset
+                );
+
+            case TwoDeadWheel:
+                // Two dead wheel uses left + center only, no right encoder
+                return new DeadWheelLocaliser(
+                        builder.leftEncoder,
+                        builder.leftEncoder, // mirrored — two wheel impl handles this
+                        builder.centerEncoder,
+                        builder.trackWidth,
+                        0
+                );
+
+            case Pinpoint:
+                return new PinpointLocaliser(
+                        builder.hwMap,
+                        builder.pinpointDeviceName,
+                        builder.centerWheelOffset,
+                        builder.trackWidth
+                );
+
+            case MotorEncoder:
+            default:
+                return new MotorEncoderLocaliser(
+                        this.frontLeft,
+                        this.frontRight,
+                        this.backLeft,
+                        RobotConfig.Odometry.TRACK_WIDTH,
+                        RobotConfig.Odometry.CENTER_WHEEL_OFFSET
+                );
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Drive helpers
+    // -----------------------------------------------------------------------
+
+    public void drive(double forward, double strafe, double rotate) {
+        double fl = forward + strafe + rotate;
+        double fr = forward - strafe - rotate;
+        double bl = forward - strafe + rotate;
+        double br = forward + strafe - rotate;
+
+        double max = Math.max(1.0,
+                Math.max(Math.max(Math.abs(fl), Math.abs(fr)),
+                        Math.max(Math.abs(bl), Math.abs(br))));
+
+        frontLeft.set(fl  / max);
+        frontRight.set(fr / max);
+        backLeft.set(bl   / max);
+        backRight.set(br  / max);
+    }
+
+    public void driveFieldRelative(double forward, double strafe, double rotate) {
+        double heading   = localiser.getPose().getHeading();
+        double rotated_x = strafe  * Math.cos(-heading) - forward * Math.sin(-heading);
+        double rotated_y = strafe  * Math.sin(-heading) + forward * Math.cos(-heading);
+        drive(rotated_y, rotated_x, rotate);
+    }
+
+    public void stop() {
+        frontLeft.set(0);
+        frontRight.set(0);
+        backLeft.set(0);
+        backRight.set(0);
+    }
+
+    // -----------------------------------------------------------------------
+    // Localisation enum
+    // -----------------------------------------------------------------------
 
     public enum Localisation {
         MotorEncoder,
@@ -93,24 +187,27 @@ public class CrawlerRobot {
     // Builder
     // -----------------------------------------------------------------------
 
-    public static class Builder implements IMotorStage, ILocaliserStage, IDeadWheelStage, IPinpointStage, IReadyStage {
+    public static class Builder implements
+            IMotorStage, ILocaliserStage,
+            IDeadWheelStage, ITwoDeadWheelStage,
+            IPinpointStage, IReadyStage {
 
-        private final HardwareMap hwMap;
+        final HardwareMap hwMap;
 
-        private String frontRightName;
-        private String frontLeftName;
-        private String backRightName;
-        private String backLeftName;
-        private String imuName = "imu";
+        String frontRightName;
+        String frontLeftName;
+        String backRightName;
+        String backLeftName;
+        String imuName = "imu";
 
-        private Localisation localisation;
+        Localisation localisation;
 
-        private MotorEx leftEncoder;
-        private MotorEx rightEncoder;
-        private MotorEx centerEncoder;
-        private double trackWidth;
-        private double centerWheelOffset;
-        private String pinpointDeviceName;
+        MotorEx leftEncoder;
+        MotorEx rightEncoder;
+        MotorEx centerEncoder;
+        double trackWidth;
+        double centerWheelOffset;
+        String pinpointDeviceName;
 
         public Builder(HardwareMap hwMap) {
             this.hwMap = hwMap;
@@ -126,7 +223,8 @@ public class CrawlerRobot {
         public ILocaliserStage motors() {
             if (frontLeftName == null || frontRightName == null
                     || backLeftName == null || backRightName == null)
-                throw new IllegalStateException("All four drive motor names must be set before calling motors().");
+                throw new IllegalStateException(
+                        "All four drive motor names must be set before calling motors().");
             return this;
         }
 
@@ -147,8 +245,17 @@ public class CrawlerRobot {
 
         @Override
         public ITwoDeadWheelStage withTwoDeadWheels(String left, String center) {
-            this.localisation = Localisation.TwoDeadWheel;
-            return (ITwoDeadWheelStage) this;
+            this.localisation  = Localisation.TwoDeadWheel;
+            this.leftEncoder   = new MotorEx(hwMap, left);
+            this.centerEncoder = new MotorEx(hwMap, center);
+            Builder self = this;
+            return new ITwoDeadWheelStage() {
+                @Override
+                public IReadyStage trackWidth(double trackWidth) {
+                    self.trackWidth = trackWidth;
+                    return self;
+                }
+            };
         }
 
         @Override
