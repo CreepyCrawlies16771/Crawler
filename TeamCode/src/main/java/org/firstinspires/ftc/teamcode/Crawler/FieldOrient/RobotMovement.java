@@ -12,6 +12,14 @@ import java.util.ArrayList;
 
 public class RobotMovement {
 
+    /*
+    Task,               Difficulty,     Can I leave it out?                             Done?
+    Path Extension,     Medium,         No. Robot won't finish the path.                [ ]
+    Dynamic Lookahead,  Medium,         "Yes, but the robot will be ""jittery."""       [ ]
+    Turn Angle Fix,     Low,No.         The math is currently inverted.                 [ ]
+    Orbiting/10cm Fix,  Low,"Yes,       but it's a temporary patch."                    [ ]
+     */
+
     private final CrawlerRobot robot;
     static double worldYPosition;
     static double worldXPosition;
@@ -26,7 +34,7 @@ public class RobotMovement {
     }
 
     //TODO: Fix when end appeards, extend the last line by more than the follow distance. Get close to the target point, to last point of the list.
-    public static void followCurve(ArrayList<Waypoint> allPoints, double followAngle) {
+    public static void follow(ArrayList<Waypoint> allPoints, double followAngle) {
         for (int i = 0; i < allPoints.size() - 1; i++) {
             DashboardFieldViewUtils.drawLine(packet, allPoints.get(i).x, allPoints.get(i).y, allPoints.get(i + 1).x, allPoints.get(i+ 1).y, DashboardFieldViewUtils.FieldColor.BLUE);
             //Displays the paths that are going to be followed
@@ -106,13 +114,19 @@ public class RobotMovement {
 
 
         double relativeTurnAngle = relativeAngleToPoint - Math.toRadians(180) + preferredAngle;
+        relativeTurnAngle = CrawlerMath.wrapAngle(relativeTurnAngle);
 
-        relativeTurnAngle /= CrawlerMath.clamp(relativeTurnAngle/Math.toRadians(30), -1, 1) * turnSpeed; //TODO: check this agiain
+
+        double turnPower = (relativeTurnAngle/ Math.toRadians(30)) * turnSpeed;
+
+        turnPower = CrawlerMath.clamp(turnPower, -1, 1);
+
 
         if(distanceToTarget < 10) { // If is is closer than 10 cm reduce the turning otherwise there is orbiting
-            relativeTurnAngle *= 0;
+            turnPower = 0;
         }
          //todo: get the data for the movement from here
+
 
     }
 }
