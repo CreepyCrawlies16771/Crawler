@@ -8,8 +8,8 @@ import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.teamcode.Crawler.Robot;
-import org.firstinspires.ftc.teamcode.Crawler.RobotConfig;
+import org.firstinspires.ftc.teamcode.Crawler.core.Robot.Robot;
+import org.firstinspires.ftc.teamcode.Crawler.core.RobotConfig;
 import org.firstinspires.ftc.teamcode.Crawler.Vision.AprilTagWebcam;
 import org.firstinspires.ftc.teamcode.Crawler.Vision.Rotation;
 import org.firstinspires.ftc.teamcode.annotations.Experimental;

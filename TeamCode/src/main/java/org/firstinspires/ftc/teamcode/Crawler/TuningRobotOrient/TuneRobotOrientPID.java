@@ -2,7 +2,7 @@ package org.firstinspires.ftc.teamcode.Crawler.TuningRobotOrient;
 
 import androidx.annotation.NonNull;
 
-import org.firstinspires.ftc.teamcode.Crawler.RobotConfig;
+import org.firstinspires.ftc.teamcode.Crawler.core.RobotConfig;
 import org.firstinspires.ftc.teamcode.Crawler.RobotOrient.ROMovementEngine;
 
 import java.io.File;

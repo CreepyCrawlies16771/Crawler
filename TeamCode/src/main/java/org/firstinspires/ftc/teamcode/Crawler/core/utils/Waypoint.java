@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.Crawler.core.utils;
 
-import org.firstinspires.ftc.teamcode.Crawler.RobotConfig;
+import org.firstinspires.ftc.teamcode.Crawler.core.RobotConfig;
 
 public class Waypoint {
 

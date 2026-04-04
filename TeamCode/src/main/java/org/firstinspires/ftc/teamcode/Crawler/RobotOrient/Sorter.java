@@ -2,7 +2,7 @@ package org.firstinspires.ftc.teamcode.Crawler.RobotOrient;
 
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import org.firstinspires.ftc.teamcode.Crawler.Robot;
+import org.firstinspires.ftc.teamcode.Crawler.core.Robot.Robot;
 
 @Deprecated()
 public class Sorter {
