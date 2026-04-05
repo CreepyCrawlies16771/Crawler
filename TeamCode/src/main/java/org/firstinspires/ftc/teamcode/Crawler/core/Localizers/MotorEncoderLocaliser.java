@@ -1,10 +1,10 @@
-package org.firstinspires.ftc.teamcode.Crawler.core.localization;
+package org.firstinspires.ftc.teamcode.Crawler.core.Localizers;
 
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.hardware.motors.MotorEx;
 import com.arcrobotics.ftclib.kinematics.DifferentialOdometry;
 
-import org.firstinspires.ftc.teamcode.Crawler.RobotConfig;
+import org.firstinspires.ftc.teamcode.Crawler.core.RobotConfig;
 
 public abstract class MotorEncoderLocaliser implements CrawlerLocaliser {
 
@@ -21,7 +21,7 @@ public abstract class MotorEncoderLocaliser implements CrawlerLocaliser {
         odometry = new DifferentialOdometry(
                 () -> (frontLeft.getDistance() + backLeft.getDistance()) / 2.0,
                 () -> (frontRight.getDistance() + backRight.getDistance()) / 2.0,
-                RobotConfig.RobotBase.TRACK_WIDTH
+                RobotConfig.Odometry.TRACK_WIDTH
         );
     }
 

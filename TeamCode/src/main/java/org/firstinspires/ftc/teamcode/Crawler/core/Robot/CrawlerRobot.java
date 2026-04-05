@@ -5,10 +5,10 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
 
 import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.CrawlerLocaliser;
-import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.DeadWheelLocaliser;
 import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.DevLocaliser;
-import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.MotorEncoderLocaliser;
-import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.PinpointLocaliser;
+import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.*;
+import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.DevLocaliser;
+import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.CrawlerLocaliser;
 import org.firstinspires.ftc.teamcode.Crawler.core.RobotConfig;
 
 public class CrawlerRobot {
@@ -50,7 +50,7 @@ public class CrawlerRobot {
         }
         switch (builder.localisation) {
             case ThreeDeadWheel:
-                return new DeadWheelLocaliser(
+                return new ThreeDeadWheelLocaliser(
                         builder.leftEncoder, builder.rightEncoder, builder.centerEncoder,
                         builder.trackWidth, builder.centerWheelOffset);
             case TwoDeadWheel:

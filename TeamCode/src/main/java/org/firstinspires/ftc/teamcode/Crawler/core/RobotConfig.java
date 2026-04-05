@@ -78,6 +78,7 @@ public class RobotConfig {
 
         // ROMovementEngine conversion & safety constants
         public static double TICKS_PER_METER = 2000.0; // Adjust to your physical drivebase
+        public static double TICKS_PER_CM = TICKS_PER_METER / 100;
         public static double timeoutSecs     = 5.0;    // Prevent infinite PID loops
 
         // --- TEMPORARY SEASON HARDWARE (Migrate to MyRobot.java later) ---
