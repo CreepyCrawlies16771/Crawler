@@ -5,7 +5,6 @@ import com.arcrobotics.ftclib.geometry.Pose2d;
 public interface CrawlerLocaliser {
     void update();
     Pose2d getPose();
-    void resetPose();
 
     void resetPose(Pose2d pose);
 }

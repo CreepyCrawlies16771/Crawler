@@ -6,7 +6,7 @@ import com.arcrobotics.ftclib.kinematics.DifferentialOdometry;
 
 import org.firstinspires.ftc.teamcode.Crawler.core.RobotConfig;
 
-public abstract class MotorEncoderLocaliser implements CrawlerLocaliser {
+public class MotorEncoderLocaliser implements CrawlerLocaliser {
 
     private final DifferentialOdometry odometry;
 
@@ -39,4 +39,5 @@ public abstract class MotorEncoderLocaliser implements CrawlerLocaliser {
     public void resetPose(Pose2d pose2d) {
         odometry.updatePose(pose2d);
     }
+
 }

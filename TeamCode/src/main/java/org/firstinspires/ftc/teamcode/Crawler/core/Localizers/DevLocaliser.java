@@ -43,10 +43,7 @@ public class DevLocaliser  implements CrawlerLocaliser{
     }
 
     @Override
-    public void resetPose() {
-        pose = new Pose2d(0, 0, new Rotation2d(0));
-        lastTime = System.nanoTime();
+    public void resetPose(Pose2d Pose) {
+        pose = Pose;
     }
-
-
 }

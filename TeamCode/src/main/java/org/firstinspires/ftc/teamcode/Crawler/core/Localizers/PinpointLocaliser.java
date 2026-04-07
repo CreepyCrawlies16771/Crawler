@@ -9,7 +9,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 
-public abstract class PinpointLocaliser implements CrawlerLocaliser {
+public class PinpointLocaliser implements CrawlerLocaliser {
     private final GoBildaPinpointDriver pinpoint;
     private final DistanceUnit distanceUnit;
 

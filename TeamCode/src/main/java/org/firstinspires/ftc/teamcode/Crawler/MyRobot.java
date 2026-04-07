@@ -53,15 +53,15 @@ public class MyRobot extends CrawlerRobot {
      */
     public MyRobot(HardwareMap hwMap) {
         super(
-            CrawlerRobot.builder(hwMap)
-                .frontLeft("fl")
-                .frontRight("fr")
-                .backLeft("bl")
-                .backRight("br")
-                .motors()
-                .withThreeDeadWheels("enc_l", "enc_r", "enc_c")
-                .setTrackWidth(33.02)
-                .setCenterWheelOffset(8.89)
+                (Builder) new Builder(hwMap)
+                        .frontLeft("fl")
+                    .frontRight("fr")
+                    .backLeft("bl")
+                    .backRight("br")
+                    .motors()
+                    .withThreeDeadWheels("enc_l", "enc_r", "enc_c")
+                    .setTrackWidth(33.02)
+                    .setCenterWheelOffset(8.89)
         );
         // Get season hardware
         this.clawServo = hwMap.get(Servo.class, CLAW_SERVO_NAME);

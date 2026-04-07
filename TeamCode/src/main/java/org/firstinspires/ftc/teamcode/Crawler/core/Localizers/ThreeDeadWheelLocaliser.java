@@ -6,7 +6,7 @@ import com.arcrobotics.ftclib.kinematics.HolonomicOdometry;
 
 import org.firstinspires.ftc.teamcode.Crawler.core.RobotConfig;
 
-public abstract class ThreeDeadWheelLocaliser implements CrawlerLocaliser {
+public class ThreeDeadWheelLocaliser implements CrawlerLocaliser {
 
     private final HolonomicOdometry odometry;
 

@@ -7,7 +7,7 @@ import com.arcrobotics.ftclib.kinematics.DifferentialOdometry;
 
 import org.firstinspires.ftc.teamcode.Crawler.core.RobotConfig;
 
-public abstract class TwoWheelLocaliser implements CrawlerLocaliser {
+public class TwoWheelLocaliser implements CrawlerLocaliser {
 
     private final DifferentialOdometry odometry;
 
