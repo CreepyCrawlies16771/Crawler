@@ -2,47 +2,33 @@ package org.firstinspires.ftc.teamcode.Crawler.RobotOrient;
 
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import org.firstinspires.ftc.teamcode.Crawler.core.Robot.Robot;
-
+/**
+ * @deprecated This class uses the old Robot.java which has been removed.
+ * Use CrawlerRobot and CrawlerTeleOp instead for new robot control code.
+ *
+ * This file is retained for reference only and should not be used in new code.
+ */
 @Deprecated()
 public class Sorter {
 
     int tries = 3;
-    public static Robot robot;
 
+    /**
+     * @deprecated Constructor no longer functional after Robot.java removal.
+     */
     public Sorter(HardwareMap hwMap) {
-        robot = new Robot(hwMap);
+        // Robot.java has been removed. Use CrawlerRobot for new code.
     }
 
-    public void getBall(BALLCOLOR ballcolor) {
-        int temp = tries;
-        if(tries <= 0) return;
-        if(!(getDetectedColor() == ballcolor)) {
-            robot.indexer.setTargetPosition(10); //TODO tune this
-            temp--;
-            tries = temp;
-            getBall(ballcolor);
-        }
-
-        //Got the correct ball at the color sensor
-        // and then go the the shooter position
-        robot.indexer.setTargetPosition(0); //TODO tune this
-        robot.lifter.setPosition(0.5); //TODO tune this
-        robot.activateShooters(false);
-
+    /**
+     * Enumeration for ball color detection.
+     *
+     * @deprecated Use appropriate sensor integration with CrawlerRobot instead.
+     */
+    public enum BALLCOLOR {
+        RED,
+        PURPLE,
+        GREEN,
+        UNKNOWN
     }
-
-    public static BALLCOLOR getDetectedColor() {
-        if (robot.ballColorSensor.red() > robot.ballColorSensor.blue()) {
-            return BALLCOLOR.PURPLE;
-        }
-
-        if(robot.ballColorSensor.green() > robot.ballColorSensor.blue()) {
-            return BALLCOLOR.GREEN;
-        }
-
-        return BALLCOLOR.UNKNOWN;
-    }
-
-
 }

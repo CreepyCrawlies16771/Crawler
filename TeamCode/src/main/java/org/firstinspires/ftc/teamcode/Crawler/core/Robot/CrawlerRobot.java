@@ -69,28 +69,60 @@ public class CrawlerRobot {
     // Localiser factory
     // -----------------------------------------------------------------------
 
+    /**
+     * Constructs the appropriate localizer based on the builder configuration.
+     *
+     * <p>Performs validation to ensure all required hardware is available before
+     * instantiation. Throws IllegalStateException with a descriptive message if
+     * configuration is invalid.</p>
+     *
+     * @param builder the robot builder with localiser configuration
+     * @return the constructed CrawlerLocaliser instance
+     * @throws IllegalStateException if required encoders are not configured
+     */
     private CrawlerLocaliser buildLocaliser(Builder builder) {
         if (builder.localisation == null) {
             return new DevLocaliser();
         }
+
         switch (builder.localisation) {
             case ThreeDeadWheel:
+                if (builder.leftEncoder == null || builder.rightEncoder == null || builder.centerEncoder == null) {
+                    throw new IllegalStateException(
+                            "Three dead-wheel localizer requires left, right, and center encoders. " +
+                            "Call withThreeDeadWheels(leftName, rightName, centerName) and verify all encoder names exist in your hardware config."
+                    );
+                }
                 return new ThreeDeadWheelLocaliser(
                         builder.leftEncoder,
                         builder.rightEncoder,
                         builder.centerEncoder,
-                        builder.leftEncoderInverted,    // Fixed: Was incorrectly passing backLeftInverted
-                        builder.rightEncoderInverted,   // Fixed: Was incorrectly passing backRightInverted
+                        builder.leftEncoderInverted,
+                        builder.rightEncoderInverted,
                         builder.centerEncoderInverted
                 );
+
             case TwoDeadWheel:
+                if (builder.leftEncoder == null || builder.centerEncoder == null) {
+                    throw new IllegalStateException(
+                            "Two dead-wheel localizer requires left and center encoders. " +
+                            "Call withTwoDeadWheels(leftName, centerName) and verify both encoder names exist in your hardware config."
+                    );
+                }
                 return new TwoWheelLocaliser(
                         builder.leftEncoder,
                         builder.centerEncoder,
-                        builder.leftEncoderInverted,    // Fixed: Was incorrectly passing backLeftInverted
-                        builder.centerEncoderInverted   // Fixed: Was incorrectly passing backRightInverted
+                        builder.leftEncoderInverted,
+                        builder.centerEncoderInverted
                 );
+
             case Pinpoint:
+                if (builder.pinpointDeviceName == null) {
+                    throw new IllegalStateException(
+                            "Pinpoint localizer requires a device name. " +
+                            "Call withPinpoint(deviceName) and verify the device exists in your hardware config."
+                    );
+                }
                 return new PinpointLocaliser(
                         builder.hwMap,
                         builder.pinpointDeviceName,
@@ -101,6 +133,7 @@ public class CrawlerRobot {
                         builder.pinpointXDir,
                         builder.pinpointYDir
                 );
+
             case MotorEncoder:
                 return new MotorEncoderLocaliser(
                         this.frontLeft,
@@ -108,6 +141,7 @@ public class CrawlerRobot {
                         this.backLeft,
                         this.backRight
                 );
+
             case DevLocaliser:
             default:
                 return new DevLocaliser();

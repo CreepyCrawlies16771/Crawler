@@ -8,13 +8,17 @@ import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.teamcode.Crawler.core.Robot.Robot;
 import org.firstinspires.ftc.teamcode.Crawler.core.RobotConfig;
 import org.firstinspires.ftc.teamcode.Crawler.Vision.AprilTagWebcam;
 import org.firstinspires.ftc.teamcode.Crawler.Vision.Rotation;
 import org.firstinspires.ftc.teamcode.annotations.Experimental;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
+/**
+ * @deprecated This class requires refactoring to use CrawlerRobot.
+ * Robot.java has been removed from the codebase.
+ * Migrate to CrawlerRobot and follow the new architecture patterns.
+ */
 public abstract class ROMovementEngine extends LinearOpMode {
     protected DcMotor backLeft, backRight, frontLeft, frontRight;
     protected DcMotor leftOdo, rightOdo, centerOdo;
@@ -29,7 +33,8 @@ public abstract class ROMovementEngine extends LinearOpMode {
     private double bSide = 0;
     private final double cSide = 150;
 
-    public Robot robot;
+    // Removed: Robot.java no longer exists. Use CrawlerRobot instead.
+    // public Robot robot;
 
     public abstract void runPath() throws InterruptedException;
 
@@ -37,7 +42,8 @@ public abstract class ROMovementEngine extends LinearOpMode {
     public void runOpMode() throws InterruptedException {
         aprilTagWebcam.init(hardwareMap, telemetry);
 
-        robot = new Robot(hardwareMap);
+        // Removed: Robot.java no longer exists. Use CrawlerRobot instead.
+        // robot = new Robot(hardwareMap);
 
         backLeft = hardwareMap.get(DcMotor.class, "backLeft");
         backRight = hardwareMap.get(DcMotor.class, "backRight");
