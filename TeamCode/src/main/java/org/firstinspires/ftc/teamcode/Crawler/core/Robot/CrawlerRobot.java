@@ -5,6 +5,8 @@ import com.arcrobotics.ftclib.hardware.motors.MotorEx;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
+
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 // Note: You must ensure this import correctly matches your project's GoBilda driver path
 // import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
@@ -26,14 +28,18 @@ public class CrawlerRobot {
     public final Localisation localisation;
     public final CrawlerLocaliser localiser;
 
-    final MotorEx leftEncoder;
-    final MotorEx rightEncoder;
-    final MotorEx centerEncoder;
+    public final MotorEx leftEncoder;
+    public final MotorEx rightEncoder;
+    public final MotorEx centerEncoder;
     final double trackWidth;
     final double centerWheelOffset;
     final String pinpointDeviceName;
+    public driveTrain driveTrain;
+    final CrawlerRobot instance;
+
 
     protected CrawlerRobot(Builder builder) {
+        this.instance = this;
         this.frontLeft  = new MotorEx(builder.hwMap, builder.frontLeftName);
         this.frontRight = new MotorEx(builder.hwMap, builder.frontRightName);
         this.backLeft   = new MotorEx(builder.hwMap, builder.backLeftName);
@@ -63,6 +69,7 @@ public class CrawlerRobot {
             this.centerEncoder.setInverted(true);
 
         this.localiser = buildLocaliser(builder);
+        this.driveTrain = new driveTrain(instance);
     }
 
     // -----------------------------------------------------------------------
@@ -148,35 +155,9 @@ public class CrawlerRobot {
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Drive
-    // -----------------------------------------------------------------------
-
-    public void drive(double forward, double strafe, double rotate) {
-        double fl = forward + strafe + rotate;
-        double fr = forward - strafe - rotate;
-        double bl = forward - strafe + rotate;
-        double br = forward + strafe - rotate;
-        double max = Math.max(1.0, Math.max(Math.max(Math.abs(fl), Math.abs(fr)),
-                Math.max(Math.abs(bl), Math.abs(br))));
-        frontLeft.set(fl / max);
-        frontRight.set(fr / max);
-        backLeft.set(bl / max);
-        backRight.set(br / max);
+    public double getHeading() {
+        return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
     }
-
-    public void driveFieldRelative(double forward, double strafe, double rotate) {
-        double heading   = localiser.getPose().getHeading();
-        double rotated_x = strafe  * Math.cos(-heading) - forward * Math.sin(-heading);
-        double rotated_y = strafe  * Math.sin(-heading) + forward * Math.cos(-heading);
-        drive(rotated_y, rotated_x, rotate);
-    }
-
-    public void stop() {
-        frontLeft.set(0); frontRight.set(0);
-        backLeft.set(0);  backRight.set(0);
-    }
-
     // -----------------------------------------------------------------------
     // Localisation enum
     // -----------------------------------------------------------------------

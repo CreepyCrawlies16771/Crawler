@@ -1,13 +1,17 @@
 package org.firstinspires.ftc.teamcode.Crawler.RobotOrient;
 
 
+import static android.os.SystemClock.sleep;
+
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.teamcode.Crawler.core.Robot.CrawlerRobot;
 import org.firstinspires.ftc.teamcode.Crawler.core.RobotConfig;
 import org.firstinspires.ftc.teamcode.Crawler.Vision.AprilTagWebcam;
 import org.firstinspires.ftc.teamcode.Crawler.Vision.Rotation;
@@ -15,123 +19,29 @@ import org.firstinspires.ftc.teamcode.annotations.Experimental;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
 /**
- * @deprecated This class requires refactoring to use CrawlerRobot.
- * Robot.java has been removed from the codebase.
- * Migrate to CrawlerRobot and follow the new architecture patterns.
+ * This is the robot oriented movement engine
+ * @deprecated Opmodeactive boolean not jet implemented
  */
-public abstract class ROMovementEngine extends LinearOpMode {
-    protected DcMotor backLeft, backRight, frontLeft, frontRight;
-    protected DcMotor leftOdo, rightOdo, centerOdo;
-    protected IMU imu;
-    protected AprilTagWebcam aprilTagWebcam = new AprilTagWebcam();
-
-    private double alpha = 0;
-    private double beta = 0;
-    private double gamma = 0;
-    private double theta = 0;
-    private double aSide = 0;
-    private double bSide = 0;
-    private final double cSide = 150;
-
-    // Removed: Robot.java no longer exists. Use CrawlerRobot instead.
-    // public Robot robot;
+public abstract class ROMovementEngine {
 
     public abstract void runPath() throws InterruptedException;
 
-    @Override
-    public void runOpMode() throws InterruptedException {
-        aprilTagWebcam.init(hardwareMap, telemetry);
+    private CrawlerRobot robot;
 
-        // Removed: Robot.java no longer exists. Use CrawlerRobot instead.
-        // robot = new Robot(hardwareMap);
+    public boolean isOpmodeRunning = false;
 
-        backLeft = hardwareMap.get(DcMotor.class, "backLeft");
-        backRight = hardwareMap.get(DcMotor.class, "backRight");
-        frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
-        frontRight = hardwareMap.get(DcMotor.class, "frontRight");
+    private DcMotorEx rightOdo,leftOdo,centerOdo;
 
+    private IMU imu;
+    public void init() throws InterruptedException {
 
-        leftOdo = hardwareMap.get(DcMotor.class, "frontLeft");
-        rightOdo = hardwareMap.get(DcMotor.class, "backRight");
-        centerOdo = hardwareMap.get(DcMotor.class, "backLeft");
+        imu = robot.imu;
 
-        setMotorBehavior();
-
-        imu = hardwareMap.get(IMU.class, "imu");
-        imu.initialize(new IMU.Parameters(new RevHubOrientationOnRobot(
-                RevHubOrientationOnRobot.LogoFacingDirection.FORWARD,
-                RevHubOrientationOnRobot.UsbFacingDirection.UP)));
-
-        resetOdometry();
-        imu.resetYaw();
-        waitForStart();
-        imu.resetYaw();
-
-        if (opModeIsActive()) {
-            aprilTagWebcam.update();
-            runPath();
-        }
+        rightOdo = (DcMotorEx) robot.rightEncoder;
+        leftOdo = (DcMotorEx) robot.leftEncoder;
+        centerOdo = (DcMotorEx) robot.centerEncoder;
     }
 
-    /**
-     * THis function allows the robot to move to the remade shooting position
-     * @param team the team to move to*/
-    public void moveToShoot(Team team) {
-        aprilTagWebcam.update();
-        if(aprilTagWebcam.getDetectedTags() == null) return;
-        if (team == Team.BLUE) {
-            findData(team);
-
-            // --- FIXED ORDER: Calculate side 'b' BEFORE angles gamma/alpha ---
-            calculateBSide();   // Calculate distance to drive first
-            calculateGamma();   // Calculate turn angle
-            calculateAlpha();   // Calculate final alignment
-
-            // First turn towards the target position
-            double firstTurnAngle = (-theta + gamma);
-
-            // Drive the distance (converted to meters)
-            turnPID((int) -firstTurnAngle);
-
-
-            drivePID(-(bSide / 100)/*convert to meters */, ((int) -firstTurnAngle));
-
-            // Turn to the final shooting orientation
-            double secondAngleTurn = 180 - alpha;
-            turnPID((int) secondAngleTurn);
-        }
-
-        aprilTagWebcam.close();
-    }
-
-
-    private void findData(Team team) {
-        aprilTagWebcam.update();
-        AprilTagDetection detection = aprilTagWebcam.getTagBySpecificId(team.getTeamAprilTagID());
-        if (detection != null) {
-            aSide = aprilTagWebcam.getAngle(detection, Rotation.RANGE);
-            beta  = aprilTagWebcam.getAngle(detection, Rotation.YAW);
-            theta = aprilTagWebcam.getAngle(detection, Rotation.BEARING);
-        }
-    }
-
-    private void calculateBSide() {
-        double thetaRad = Math.toRadians(theta);
-        bSide = Math.sqrt(Math.pow(aSide, 2) + Math.pow(cSide, 2) - (2 * aSide * cSide * Math.cos(thetaRad)));
-    }
-
-    private void calculateGamma() {
-        // Avoid division by zero
-        if (aSide == 0 || bSide == 0) {
-            gamma = 0;
-            return;
-        }
-        double cosGamma = (Math.pow(aSide, 2) + Math.pow(bSide, 2) - Math.pow(cSide, 2)) / (2 * aSide * bSide);
-        cosGamma = Math.max(-1, Math.min(1, cosGamma)); // Keep within -1 to 1
-        gamma = Math.toDegrees(Math.acos(cosGamma));
-    }
-
-    private void calculateAlpha() { alpha = 180 - (theta + gamma); }
 
 
     /**
@@ -154,7 +64,7 @@ public abstract class ROMovementEngine extends LinearOpMode {
         ElapsedTime timer = new ElapsedTime();
         timer.reset();
 
-        while (opModeIsActive() && (timer.seconds() < RobotConfig.RobotBase.timeoutSecs) && Math.abs(error) > 50) {
+        while ((timer.seconds() < RobotConfig.RobotBase.timeoutSecs) && Math.abs(error) > 50) {
 
             // Calculate current distance traveled relative to start
             double rawCurrentPos = ((leftOdo.getCurrentPosition() + rightOdo.getCurrentPosition()) / 2.0) * -1;
@@ -193,14 +103,8 @@ public abstract class ROMovementEngine extends LinearOpMode {
             applyDrivePower(power, -steer);
             lastError = error;
 
-            // 4. TELEMETRY: Essential for seeing WHY it won't stop
-            telemetry.addData("Target Ticks", targetTicks);
-            telemetry.addData("Current Pos", currentPos);
-            telemetry.addData("Error", error);
-            telemetry.addData("Power", power);
-            telemetry.update();
         }
-        stopRobot();
+        robot.driveTrain.stop();
     }
 
 
@@ -218,9 +122,8 @@ public abstract class ROMovementEngine extends LinearOpMode {
         final int maxError = 50;
 
 
-        while (opModeIsActive() && Math.abs(error) > maxError) {
+        while (Math.abs(error) > maxError) {
             double currentPos =  centerOdo.getCurrentPosition();
-            telemetry.addData("Strafe pod", currentPos);
 
             //currentPos = currentPos * -1; // if the odometry pods are mounted backwards
 
@@ -253,7 +156,7 @@ public abstract class ROMovementEngine extends LinearOpMode {
 
 
         }
-        stopRobot();
+        robot.driveTrain.stop();
     }
 
     /**
@@ -266,7 +169,7 @@ public abstract class ROMovementEngine extends LinearOpMode {
         double error = angleWrap(targetAngle - currentYaw);
 
         // 2. Loop until error is small (e.g., < 1 degree)
-        while (opModeIsActive() && Math.abs(error) > 1.0) {
+        while (Math.abs(error) > 1.0) {
             currentYaw = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
             error = angleWrap(targetAngle - currentYaw);
 
@@ -279,16 +182,12 @@ public abstract class ROMovementEngine extends LinearOpMode {
             if (Math.abs(turnPower) < 0.15) turnPower = Math.signum(turnPower) * 0.15;
 
             // Apply power (Turn Right = Left Forward, Right Back)
-            // Note: Check your motor directions!
-            backLeft.setPower(-turnPower);
-            frontLeft.setPower(-turnPower);
-            backRight.setPower(turnPower);
-            frontRight.setPower(-turnPower);
+            robot.driveTrain.applyDriveTrainPowerSingle(
+                    -turnPower, -turnPower, -turnPower, -turnPower
+            );
 
-            telemetry.addData("Target", targetAngle);
-            telemetry.addData("Heading", currentYaw);
         }
-        stopRobot();
+        robot.driveTrain.stop();
     }
 
     @Experimental("PID, accuracy not copley done, not as accurate as the rest")
@@ -306,7 +205,7 @@ public abstract class ROMovementEngine extends LinearOpMode {
         final double POSITION_DEADBAND_TICKS = 0.05 * RobotConfig.RobotBase.TICKS_PER_METER;
         long startTime = System.currentTimeMillis();
 
-        while (opModeIsActive()) {
+        while (isOpmodeRunning) {
             double currentPos = (leftOdo.getCurrentPosition() + rightOdo.getCurrentPosition()) / 2.0;
             double error = targetTicks - currentPos;
 
@@ -339,22 +238,22 @@ public abstract class ROMovementEngine extends LinearOpMode {
 
             applyDrivePower(power, steer);
 
-            telemetry.addData("Progress", "%.2f", progress);
-            telemetry.addData("Heading Error", "%.1f", headingError);
-            telemetry.update();
         }
 
-        stopRobot();
+        robot.driveTrain.stop();
     }
 
     // --- HELPERS ---
 
     private void applyDrivePower(double p, double s) {
         // p = forward power, s = steer (turning)
-        frontLeft.setPower(p + s);
-        backLeft.setPower(p + s);
-        frontRight.setPower((p - s)*-1); // Right side must be opposite of Left
-        backRight.setPower(p - s); // Right side must be opposite of Left
+
+        robot.driveTrain.applyDriveTrainPowerSingle(
+                p+s,
+                p-s,
+                p+s,
+                p-s
+        );
     }
 
     public void applyStrafePower(double strafe, double steer) {
@@ -376,17 +275,14 @@ public abstract class ROMovementEngine extends LinearOpMode {
             br /= max;
         }
 
-        frontLeft.setPower(fl);
-        frontRight.setPower(-fr);
-        backLeft.setPower(bl);
-        backRight.setPower(br);
+        robot.driveTrain.applyDriveTrainPowerSingle(
+                fl,
+                fr,
+                bl,
+                br
+        );
     }
 
-    private void stopRobot() {
-        backLeft.setPower(0); backRight.setPower(0);
-        frontLeft.setPower(0); frontRight.setPower(0);
-        sleep(100);
-    }
 
     private void resetOdometry() {
         leftOdo.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -395,15 +291,6 @@ public abstract class ROMovementEngine extends LinearOpMode {
         leftOdo.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightOdo.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         centerOdo.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-    }
-
-    private void setMotorBehavior() {
-        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backRight.setDirection(DcMotor.Direction.REVERSE);
-        frontRight.setDirection(DcMotor.Direction.REVERSE);
     }
 
     private  double angleWrap(double degrees) {

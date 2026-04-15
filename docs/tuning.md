@@ -13,7 +13,7 @@ Here's the thing: every robot is different.
 
 Even if two robots look identical, their motors have slightly different power curves, their wheels have different traction, and their weight distribution is unique. Without tuning, Crawler doesn't know how *your specific* robot moves.
 
-**Without tuning:** Your robot might drive 24 inches when you ask it to drive 24 inches, or it might only drive 20 inches.
+**Without tuning:** Your robot might drive 24 inches when you ask it to drive 22 inches, or it might only drive 20 inches.
 
 **With tuning:** Crawler knows your robot inside and out and compensates automatically.
 

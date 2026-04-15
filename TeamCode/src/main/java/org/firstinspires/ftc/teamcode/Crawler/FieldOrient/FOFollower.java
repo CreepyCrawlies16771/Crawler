@@ -111,7 +111,7 @@ public class FOFollower {
         }
 
         // Ensure motors are stopped after path completion
-        robot.stop();
+        robot.driveTrain.stop();
     }
 
     /**
@@ -145,7 +145,7 @@ public class FOFollower {
             if (waypointTimer.seconds() > timeout) {
                 telemetry.addData("WARNING", "Waypoint timeout: %.1f seconds", waypointTimer.seconds());
                 telemetry.update();
-                robot.stop();  // Stop motors on timeout
+                robot.driveTrain.stop();  // Stop motors on timeout
                 break;
             }
 

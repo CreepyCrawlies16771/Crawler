@@ -201,7 +201,7 @@ public class RobotMovement {
                 (relativeTurnAngle / Math.toRadians(30)) * turnSpeed, -1, 1
         ) * orbitScale;
 
-        robot.drive(movementYPower, movementXPower, turnPower);
+        robot.driveTrain.drive(movementYPower, movementXPower, turnPower);
 
     }
 

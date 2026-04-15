@@ -1,11 +1,16 @@
 package org.firstinspires.ftc.teamcode.Crawler.Tuning;
 
+import android.annotation.SuppressLint;
+
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import org.firstinspires.ftc.teamcode.Crawler.config.RobotConfig;
+
+import org.firstinspires.ftc.teamcode.Crawler.RobotOrient.ROMovementEngine;
 import org.firstinspires.ftc.teamcode.Crawler.core.Robot.CrawlerRobot;
-import org.firstinspires.ftc.teamcode.Crawler.core.geometry.Pose;
+import org.firstinspires.ftc.teamcode.Crawler.core.RobotConfig;
+import org.firstinspires.ftc.teamcode.Crawler.core.utils.*;
+
 
 /**
  * CrawlerTuner — The guided sequential tuning OpMode.
@@ -204,6 +209,7 @@ public abstract class CrawlerTuner extends OpMode {
     /**
      * Step 1: IMU Verification — Check if gyro is oriented correctly.
      */
+    @SuppressLint("DefaultLocale")
     private void runIMUVerification() {
         // User manually rotates robot 90 degrees left
         // We just read the heading
@@ -227,10 +233,9 @@ public abstract class CrawlerTuner extends OpMode {
     private void runTrackWidthTest() {
         // Set track width from current value
         RobotConfig.Odometry.TRACK_WIDTH = currentValue;
-        robot.getOdometry().setTrackWidth(currentValue);
 
         // Spin 10 rotations clockwise
-        robot.getMecanumDrive().turnPID(10 * 360);
+        new ROMovementEngine().turnPID(10 * 360);
         sleep(5000); // Wait for turn to complete
 
         // Measure final heading
@@ -281,6 +286,7 @@ public abstract class CrawlerTuner extends OpMode {
     /**
      * Step 4: Odometry Accuracy Gate — Drive a square and measure return error.
      */
+    @SuppressLint("DefaultLocale")
     private void runOdometryAccuracyGate() {
         Pose startPose = robot.getPose();
 
@@ -644,9 +650,10 @@ public abstract class CrawlerTuner extends OpMode {
     /**
      * Show the final tuning complete message.
      */
+    @SuppressLint("DefaultLocale")
     private void showTuningComplete() {
         telemetry.addData("===", "TUNING COMPLETE!");
-        telemetry.addData("Total time", formatTime(totalTimer.milliseconds()));
+        telemetry.addData("Total time", formatTime((long) totalTimer.milliseconds()));
         telemetry.addData("", "");
         telemetry.addData("Your tuned values:", "");
         telemetry.addData("  Track width", String.format("%.2f\"", RobotConfig.Odometry.TRACK_WIDTH));
@@ -666,7 +673,7 @@ public abstract class CrawlerTuner extends OpMode {
         String stepName = getStepName(currentStep);
 
         telemetry.addData("=== Step " + (currentStep + 1) + "/" + TOTAL_STEPS + ": " + stepName + " ===", "");
-        telemetry.addData("Elapsed", formatTime(totalTimer.milliseconds()) + " | Step time: " + formatTime(stepTimer.milliseconds()));
+        telemetry.addData("Elapsed", formatTime((long) totalTimer.milliseconds()) + " | Step time: " + formatTime((long) stepTimer.milliseconds()));
         telemetry.addData("", "");
 
         telemetry.addData("Current value", getValueDisplay(currentStep, currentValue));
@@ -708,6 +715,7 @@ public abstract class CrawlerTuner extends OpMode {
     /**
      * Get display string for current value.
      */
+    @SuppressLint("DefaultLocale")
     private String getValueDisplay(int step, double value) {
         switch (step) {
             case 2:
@@ -727,20 +735,22 @@ public abstract class CrawlerTuner extends OpMode {
      * Get display string for test status.
      */
     private String getStatusDisplay(String status) {
-        if (status.equals("PASS")) {
-            return "✓ PASS";
-        } else if (status.equals("MARGINAL")) {
-            return "⚠ MARGINAL";
-        } else if (status.equals("FAIL")) {
-            return "✗ FAIL";
-        } else {
-            return "Not started";
+        switch (status) {
+            case "PASS":
+                return "✓ PASS";
+            case "MARGINAL":
+                return "⚠ MARGINAL";
+            case "FAIL":
+                return "✗ FAIL";
+            default:
+                return "Not started";
         }
     }
 
     /**
      * Format milliseconds as MM:SS or MM:SS (hh).
      */
+    @SuppressLint("DefaultLocale")
     private String formatTime(long millis) {
         long seconds = millis / 1000;
         long minutes = seconds / 60;
