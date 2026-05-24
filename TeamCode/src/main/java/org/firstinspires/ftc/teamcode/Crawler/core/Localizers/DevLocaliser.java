@@ -3,8 +3,11 @@ package org.firstinspires.ftc.teamcode.Crawler.core.Localizers;
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
 
-/// This is a localizer used to create pathing/follower code and not needing a robot or a proper localizer to do such
-public class DevLocaliser  implements CrawlerLocaliser{
+/**
+ * Simulation-only localiser for bench testing path code without hardware.
+ * Not for use on a real robot — use {@code withThreeDeadWheels()} etc. instead.
+ */
+public class DevLocaliser implements CrawlerLocaliser {
 
 
     private Pose2d pose;

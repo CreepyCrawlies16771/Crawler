@@ -3,7 +3,6 @@ package org.firstinspires.ftc.teamcode.Crawler.FieldOrient;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 
 import org.firstinspires.ftc.teamcode.Crawler.Dashboard.DashboardFieldViewUtils;
-import org.firstinspires.ftc.teamcode.Crawler.core.RobotConfig;
 import org.firstinspires.ftc.teamcode.Crawler.core.Robot.CrawlerRobot;
 import org.firstinspires.ftc.teamcode.Crawler.core.utils.CrawlerMath;
 import org.firstinspires.ftc.teamcode.Crawler.core.utils.Point;
@@ -83,7 +82,7 @@ public class RobotMovement {
         double extraX = last.x + (dx / len) * extendBy;
         double extraY = last.y + (dy / len) * extendBy;
 
-        extended.add(Waypoint.at(extraX, extraY)
+        extended.add(Waypoint.at(extraX, extraY, robot.config)
                 .speed(last.moveSpeed)
                 .turnSpeed(last.turnSpeed)
                 .followDistance(last.followDistance)
@@ -150,7 +149,7 @@ public class RobotMovement {
 
                 if (deltaAngle < closestAngle) {
                     closestAngle = deltaAngle;
-                    followMe = new Waypoint.Builder(intersection.x, intersection.y)
+                    followMe = Waypoint.at(intersection.x, intersection.y, robot.config)
                             .speed(endLine.moveSpeed)
                             .turnSpeed(endLine.turnSpeed)
                             .followDistance(endLine.followDistance)
@@ -194,15 +193,16 @@ public class RobotMovement {
         // FIX: orbit — scale turnPower by distance so it fades naturally
         // instead of cutting off abruptly at a hardcoded threshold
         double orbitScale = CrawlerMath.clamp(
-                distanceToTarget / RobotConfig.FieldOriented.ORBIT_THRESHOLD, 0, 1
+                distanceToTarget / robot.config.orbitThresholdCm, 0, 1
         );
 
         double turnPower = CrawlerMath.clamp(
-                (relativeTurnAngle / Math.toRadians(30)) * turnSpeed, -1, 1
+                (relativeTurnAngle / robot.config.turnReferenceRadians) * turnSpeed, -1, 1
         ) * orbitScale;
 
-
-
+        // FIX: CRITICAL — actually apply the computed powers to the robot!
+        // Previously, these powers were calculated but never sent to the drivetrain.
+        robot.driveFieldRelative(movementYPower, movementXPower, turnPower);
     }
 
     // -----------------------------------------------------------------------

@@ -4,17 +4,17 @@ import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.hardware.motors.MotorEx;
 import com.arcrobotics.ftclib.kinematics.HolonomicOdometry;
 
-import org.firstinspires.ftc.teamcode.Crawler.core.RobotConfig;
+import org.firstinspires.ftc.teamcode.Crawler.core.Robot.CrawlerRobot;
 
 public class ThreeDeadWheelLocaliser implements CrawlerLocaliser {
 
     private final HolonomicOdometry odometry;
 
     public ThreeDeadWheelLocaliser(MotorEx leftEncoder, MotorEx rightEncoder, MotorEx centerEncoder,
-                                   boolean invertLeft, boolean invertRight, boolean invertCenter) {
+                                   boolean invertLeft, boolean invertRight, boolean invertCenter,
+                                   CrawlerRobot.Config config) {
 
-        double distancePerPulse = Math.PI * RobotConfig.Odometry.WHEEL_DIAMETER
-                / RobotConfig.Odometry.TICKS_PER_REV;
+        double distancePerPulse = Math.PI * config.wheelDiameterIn / config.ticksPerRev;
 
         leftEncoder.setDistancePerPulse(distancePerPulse);
         rightEncoder.setDistancePerPulse(distancePerPulse);
@@ -28,8 +28,8 @@ public class ThreeDeadWheelLocaliser implements CrawlerLocaliser {
                 leftEncoder::getDistance,
                 rightEncoder::getDistance,
                 centerEncoder::getDistance,
-                RobotConfig.Odometry.TRACK_WIDTH,
-                RobotConfig.Odometry.CENTER_WHEEL_OFFSET
+                config.trackWidthIn,
+                config.centerWheelOffsetIn
         );
     }
 

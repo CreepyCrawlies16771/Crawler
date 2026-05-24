@@ -36,9 +36,10 @@ public class PinpointLocaliser implements CrawlerLocaliser {
     @Override
     public Pose2d getPose() {
         Pose2D raw = pinpoint.getPosition();
+        // Library pose is always centimeters.
         return new Pose2d(
-                raw.getX(distanceUnit),
-                raw.getY(distanceUnit),
+                raw.getX(DistanceUnit.CM),
+                raw.getY(DistanceUnit.CM),
                 new Rotation2d(raw.getHeading(AngleUnit.RADIANS))
         );
     }

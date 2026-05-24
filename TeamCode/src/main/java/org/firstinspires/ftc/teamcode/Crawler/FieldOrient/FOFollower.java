@@ -4,7 +4,6 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.Crawler.core.Robot.CrawlerRobot;
-import org.firstinspires.ftc.teamcode.Crawler.core.RobotConfig;
 import org.firstinspires.ftc.teamcode.Crawler.core.utils.Waypoint;
 
 import java.util.Arrays;
@@ -38,6 +37,7 @@ public class FOFollower {
     private final Telemetry telemetry;
     private final OpModeProxy opModeProxy;
 
+
     /**
      * Interface to access LinearOpMode methods without direct dependency.
      *
@@ -57,7 +57,7 @@ public class FOFollower {
      * Creates a new field-oriented follower.
      *
      * <p>The follower will use the robot's localiser to track position and
-     * read configuration from {@code RobotConfig.FieldOriented}.</p>
+     * read configuration from {@code robot.config}.</p>
      *
      * @param robot the {@code CrawlerRobot} instance to control
      * @param telemetry the telemetry object for debugging output
@@ -115,6 +115,7 @@ public class FOFollower {
      * @throws InterruptedException if the OpMode is stopped during execution
      */
     public void follow(Waypoint... waypoints) throws InterruptedException {
+        if(!opModeProxy.isActive()) return;
         follow(Arrays.asList(waypoints));
     }
 
@@ -130,7 +131,7 @@ public class FOFollower {
      */
     private void followToWaypoint(Waypoint waypoint) throws InterruptedException {
         ElapsedTime waypointTimer = new ElapsedTime();
-        double timeout = RobotConfig.RobotBase.timeoutSecs;
+        double timeout = robot.config.timeoutSecs;
 
         while (opModeProxy.isActive()) {
             // Timeout safety check
@@ -149,7 +150,7 @@ public class FOFollower {
                     waypoint.y - robot.localiser.getPose().getY()
             );
 
-            if (distanceToTarget < RobotConfig.FieldOriented.ARRIVAL_THRESHOLD) {
+            if (distanceToTarget < robot.config.arrivalThresholdCm) {
                 // Arrived
                 break;
             }

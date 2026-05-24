@@ -2,23 +2,67 @@ package org.firstinspires.ftc.teamcode.Crawler.core.utils;
 
 import java.util.ArrayList;
 
+/**
+ * Utility math functions for Crawler robot control.
+ *
+ * <p>Provides angle wrapping, clamping, and path geometry functions for pure pursuit
+ * and other control algorithms.</p>
+ */
 public class CrawlerMath {
 
     /**
-     * Makes sure an angle is within the range -180 to 180 degrees
+     * Wraps an angle in degrees to the range [-180, 180].
+     *
+     * <p>Used for heading error calculations where we want the shortest rotation path.</p>
+     *
+     * @param degrees the angle in degrees
+     * @return the angle wrapped to [-180, 180] degrees
      */
-    public static double wrapAngle(double angle) {
-
-        while (angle < -180) angle += 360;
-        while (angle > 180) angle -= 360;
-
-        return angle;
+    public static double wrapAngle(double degrees) {
+        while (degrees < -180) degrees += 360;
+        while (degrees > 180) degrees -= 360;
+        return degrees;
     }
 
+    /**
+     * Wraps an angle in radians to the range [-π, π].
+     *
+     * <p>This is the radian equivalent of {@link #wrapAngle(double)}. Used when
+     * working with heading angles in radians (e.g., from localiser.getPose().getHeading()).</p>
+     *
+     * @param radians the angle in radians
+     * @return the angle wrapped to [-π, π] radians
+     */
+    public static double wrapRadians(double radians) {
+        while (radians < -Math.PI) radians += 2 * Math.PI;
+        while (radians > Math.PI) radians -= 2 * Math.PI;
+        return radians;
+    }
+
+    /**
+     * Clamps a value to a range.
+     *
+     * @param value the value to clamp
+     * @param min the minimum allowed value
+     * @param max the maximum allowed value
+     * @return the clamped value
+     */
     public static double clamp(double value, double min, double max) {
         return Math.max(min, Math.min(max, value));
     }
 
+    /**
+     * Finds the intersection points between a circle and a line segment.
+     *
+     * <p>Used by pure pursuit pathfinding to calculate lookahead points. Returns
+     * all intersection points within the line segment bounds.</p>
+     *
+     * @param circleCenter the center of the circle
+     * @param radius the radius of the circle
+     * @param linePointA the first endpoint of the line segment
+     * @param linePointB the second endpoint of the line segment
+     * @return a list of intersection points (may be empty if no intersection exists)
+     */
     public static ArrayList<Point> lineCircleIntersection(
             Point circleCenter,
             double radius,
