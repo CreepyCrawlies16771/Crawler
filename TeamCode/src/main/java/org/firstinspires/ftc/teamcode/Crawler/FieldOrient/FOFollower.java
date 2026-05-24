@@ -83,11 +83,18 @@ public class FOFollower {
      * @throws InterruptedException if the OpMode is stopped during execution
      */
     public void follow(List<Waypoint> waypoints) throws InterruptedException {
+        // Validate waypoint list
         if (waypoints == null || waypoints.isEmpty()) {
+            telemetry.addLine("[Crawler] WARNING: follow() called with empty waypoint list. Ignoring.");
+            telemetry.update();
             return;
         }
 
-        ElapsedTime timer = new ElapsedTime();
+        if (waypoints.size() < 2) {
+            telemetry.addLine("[Crawler] WARNING: follow() needs at least 2 waypoints.");
+            telemetry.update();
+            return;
+        }
 
         for (int i = 0; i < waypoints.size(); i++) {
             if (!opModeProxy.isActive()) {
@@ -103,7 +110,8 @@ public class FOFollower {
             }
         }
 
-        robot.stop();
+        // Ensure motors are stopped after path completion
+        robot.driveTrain.stop();
     }
 
     /**
@@ -138,6 +146,7 @@ public class FOFollower {
             if (waypointTimer.seconds() > timeout) {
                 telemetry.addData("WARNING", "Waypoint timeout: %.1f seconds", waypointTimer.seconds());
                 telemetry.update();
+                robot.driveTrain.stop();  // Stop motors on timeout
                 break;
             }
 
@@ -155,8 +164,14 @@ public class FOFollower {
                 break;
             }
 
-            // Compute and execute movement
-            movement.follow(Arrays.asList(waypoint), waypoint.heading);
+            // Compute and execute movement using pure pursuit
+            // Call goToPosition directly instead of wrapping in follow()
+            movement.goToPosition(
+                    waypoint.x, waypoint.y,
+                    waypoint.moveSpeed,
+                    movement.getWorldHeading(),
+                    waypoint.turnSpeed
+            );
 
             // Telemetry
             telemetry.addData("Target (cm)", "%.1f, %.1f", waypoint.x, waypoint.y);
