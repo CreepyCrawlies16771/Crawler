@@ -7,258 +7,118 @@ description: Fix common Crawler problems
 
 *What to do when something goes wrong*
 
-## Robot Doesn't Move During Autonomous
+## Robot doesn't move during autonomous
 
-**Symptom:** You select your autonomous, press Play, and nothing happens.
-
-**Likely causes:**
-
-- Motors aren't named correctly in MyRobot.java
-- Hardware hasn't been initialized
-- Build errors (check the build log)
+**Likely causes:** device name mismatch · untuned robot · hardware not in the Driver Hub configuration.
 
 **Fix:**
 
-1. Check that motor names in MyRobot match exactly what you named them in the FTC Driver Hub configuration
-2. Make sure `buildRobot()` is calling `robot = new MyRobot();`
-3. Check the logcat for errors (Logcat is in Android Studio: View → Tool Windows → Logcat)
-4. Try running a simple TeleOp first — if the driver can move the robot, the hardware is fine
+1. Check every name at the top of `MyRobot.java` against the Driver Hub configuration — spelling, case, and spaces matter
+2. Run the **Crawler Tuner** once — an untuned robot can report zero movement
+3. Watch the Driver Station: a device-name error appears at INIT
+4. Try the **Crawler Smoke Test** — it tells you whether odometry is reporting movement
 
----
+## Robot moves the wrong way
 
-## Robot Moves in the Wrong Direction
-
-**Symptom:** You command "drive forward" but the robot reverses.
-
-**Likely causes:**
-
-- Motors are inverted incorrectly
-- You're reading the field coordinates backwards
+**Likely causes:** motor inversion · reversed encoder.
 
 **Fix:**
 
-1. In MyRobot.java, check which motors you're inverting
-2. Test by removing all `invert*()` calls and see what happens
-3. Add inverting back one motor at a time until motion is correct
-4. Or: run the hardware verification step in the tuner (Step 1 walks through each motor)
+1. Run the tuner's **Motors** step — it tells you exactly which wheel spins wrong
+2. Invert that motor in the builder: `.frontLeft("fl").invertFrontLeft()`
+3. If odometry runs backward, invert the encoder: `.withThreeDeadWheels(...).setTrackWidth(13.0).invertLeftEncoder()`
 
----
+## Robot "spins" in its pose estimate (telemetry rotates but robot doesn't)
 
-## Robot Spins in Circles
-
-**Symptom:** Robot rotates uncontrollably during tuning or autonomous.
-
-**Likely causes (in order of probability):**
-
-1. Track width is way too small
-2. One motor is inverted when it shouldn't be
-3. Odometry pods aren't positioned correctly
+**Likely causes:** track width way off · IMU orientation wrong.
 
 **Fix:**
 
-1. If this happens during tuning: when tuner asks you to drive straight, ignore the spinning. Let it complete Step 3 (Track Width) — the tuner will fix it
-2. If it happens in autonomous: re-run tuning, especially Step 3
-3. Double-check motor inverting (see "Robot Moves in the Wrong Direction" above)
+1. Re-tune **Step 3 (track width)** — the spin test compares odometry to the IMU
+2. Double-check `.imuOrientation(IMU_LOGO, IMU_USB)` matches the physical REV Hub mounting (UP / FORWARD is typical; a sideways hub needs different values)
+3. Verify the IMU yaw reads 0 and grows as the robot turns left
 
----
+## Distances are wrong by the same ratio everywhere
 
-## Robot Overshoots Waypoints
+**Likely causes:** wheel diameter or ticks-per-rev.
 
-**Symptom:** Robot goes past the waypoint before turning toward the next one.
+**Fix:** tune **Step 2**. If the robot drives 90 cm when told 100 cm, increase `wheelDiameterIn` by ~10%. The ratio between odometry and reality should be nearly constant — if it is, it's this, not PID.
 
-**Likely causes:**
+## Robot rotates while strafing
 
-- Lookahead distance too large
-- Your waypoints are too close together
-- Robot velocity is too high relative to how tight your turns are
+**Likely causes:** center wheel offset wrong.
 
-**Fix:**
+**Fix:** re-tune **Step 4**. If heading drifts counterclockwise during a rightward strafe, increase `centerWheelOffsetIn`.
 
-1. Decrease `LOOKAHEAD_DISTANCE` in RobotConfig (try 5.0 instead of 6.0)
-2. Space waypoints further apart (minimum 12 inches)
-3. Use `.slow()` on waypoints where precision matters
-4. In Configuration Reference page, read the LOOKAHEAD_DISTANCE section for more details
+## Robot overshoots / oscillates around targets
 
----
+**Likely causes:** P too high (or needs D).
 
-## Robot Orbits a Waypoint and Never Arrives
+**Fix:** in the tuner's **Step 5** (or the Dashboard):
 
-**Symptom:** Robot circles around a waypoint without ever reaching it.
+- Overshoots and oscillates → lower P by 30–50%
+- Wobbles around the target with P already low → add `Kd` (start 0.01)
+- Stops a couple of cm short → add `Ki` (start 0.001)
 
-**Likely causes:**
+## Robot never starts moving on small commands
 
-- Lookahead distance too small
-- Lateral coefficient too high (robot oscillates)
-- Waypoint is unreachable (inside an obstacle or off the field)
+**Likely causes:** `minPower` too low for your floor friction.
 
-**Fix:**
+**Fix:** run the tuner's **Min power** test (Step 5 — press **Triangle** to cycle the PID tests to *Min power*) — it searches the deadband automatically.
 
-1. Increase `LOOKAHEAD_DISTANCE` (try 7.0 or 8.0)
-2. Decrease `LATERAL_DISTANCE_COEFFICIENT` (try 0.8 or 0.9)
-3. Check that the waypoint coordinates are actually reachable on your field
-4. Make sure your robot's starting pose is set correctly: `follower.setStartingPose(...)`
+## Path overshoots corners or is jerky
 
----
+| Symptom | Fix |
+|---|---|
+| Cuts corners / misses waypoints | Lower `followDistanceCm` (Dashboard) |
+| Jerky, wiggly corners | Raise `followDistanceCm` |
+| Overshoots waypoints | Lower `moveSpeed`, or `.slow(robot.config)` on the last waypoint |
+| Over-rotates at corners | Raise `orbitThresholdCm` |
 
-## Odometry Reads Wrong Values
+## `onReach` never fires (or fires late)
 
-**Symptom:** The robot's position estimate (from getDoPose()) is wrong.
-
-**Likely causes:**
-
-- Odometry pods aren't mounted correctly
-- Localizer type doesn't match your actual hardware
-- Track width is way off (causes rotational errors to accumulate)
+**Likely causes:** arrival threshold too small · waypoint unreachable.
 
 **Fix:**
 
-1. Check that your MyRobot code specifies the correct localizer type:
-   - Do you have three dead wheels? Use `THREE_DEAD_WHEELS`
-   - Two? Use `TWO_DEAD_WHEELS`
-   - Just encoders? Use `MOTOR_ENCODERS`
-2. Re-run tuning (especially Step 6 and 7, which directly measure odometry)
-3. Check that pods are mechanically sound and not slipping
-4. Verify track width — if it's off by a lot, rotational errors compound
+1. Raise `arrivalThresholdCm` (default 5 cm)
+2. Make sure the waypoint is actually reachable (not inside a wall)
+3. Check the follower telemetry — "Distance (cm)" shows how close the robot gets before the leg times out
 
----
+## The OpMode crashes at INIT
 
-## Build Error: "Cannot Find Symbol CrawlerAuto"
-
-**Symptom:** Android Studio shows a red error on `extends CrawlerAuto<MyRobot>`
-
-**Likely causes:**
-
-- Crawler dependency didn't install correctly
-- Gradle sync didn't complete
-- You're using the wrong import
+**Likely causes:** a device name isn't in the configuration, or the builder stage order is wrong.
 
 **Fix:**
 
-1. Click **File → Sync Now** and wait for it to complete
-2. If that doesn't work, click **File → Invalidate Caches / Restart** and wait
-3. Check that your build.gradle has the Crawler dependency (see Installation page)
-4. Delete the `build/` folder and rebuild
+1. Read the error on the Driver Station — it names the missing device
+2. Verify the builder order: motor names → `.imu(...)` → `.motors()` → localizer → tuning values
+3. A `IllegalStateException` from `motors()` or `build()` means a required stage was skipped
 
----
+## The tuner's snippet doesn't match my robot
 
-## Build Error: "Duplicate Class"
+**Likely causes:** the tuned values were pasted into the wrong place, or `MyRobot` was changed mid-season.
 
-**Symptom:** Gradle build fails with "duplicate class" message.
+**Fix:** paste the snippet into the tuned section of `MyRobot.builder()` and rebuild. The tuner rebuilds `MyRobot.builder()` with live values — your device names and localizer — so the hardware always matches; only the numbers can drift.
 
-**Likely causes:**
+## Changes in the Dashboard don't take effect
 
-- You have Crawler imported twice (once as a dependency, once manually)
-- A library dependency conflict
+**Likely causes:** the OpMode isn't running, or the field isn't saved.
 
 **Fix:**
 
-1. Do NOT manually add Crawler to your TeamCode folder. It should only come from the dependency
-2. Search your entire project for duplicate Crawler files and delete them
-3. Run Gradle clean: **Build → Clean Project**
-4. Rebuild
+1. The **Crawler Tuner** must be running (Play pressed)
+2. Press Enter in the Dashboard field to commit the value
+3. The robot rebuilds itself when a value changes — give it one loop
 
----
+## Still stuck?
 
-## Robot Jerks or Oscillates During Pure Pursuit
-
-**Symptom:** Robot's movement is jerky or wiggles side to side instead of smooth.
-
-**Likely causes:**
-
-- Motion profile time is too short
-- Lateral or heading coefficients are too high
-- Lookahead distance is too small
-
-**Fix:**
-
-1. Increase `MOTION_PROFILE_TIME` from 0.5s to 1.0s (gives robot more time to accelerate smoothly)
-2. Decrease `LATERAL_DISTANCE_COEFFICIENT` to 0.8 or lower
-3. Increase `LOOKAHEAD_DISTANCE` to 7.0 or higher
-4. Re-tune if you've made big changes to robot setup
-
----
-
-## Path Following Is Slow and Sluggish
-
-**Symptom:** Your robot is slow following paths, taking forever to reach waypoints.
-
-**Likely causes:**
-
-- Motion profile time is too long
-- Max velocity is set too low
-- You're using `.slow()` on every waypoint
-- Lookahead distance is too large (robot takes very smooth, wide turns)
-
-**Fix:**
-
-1. Check `MAX_VELOCITY` — is it set to something reasonable? (Should be 40-60 in/s for most robots)
-2. Decrease `MOTION_PROFILE_TIME` from 0.5s to 0.3s (allow faster acceleration)
-3. Only use `.slow()` on waypoints that need precision
-4. Slightly decrease `LOOKAHEAD_DISTANCE` to tighten turns (but watch for overshooting)
-
----
-
-## onReach Action Fires at the Wrong Waypoint
-
-**Symptom:** Your claw opens when the robot reaches waypoint 2, but it's supposed to open at waypoint 3.
-
-**Likely causes:**
-
-- Copy-paste error in your path definition
-- You have the waypoint data wrong (different coordinates than you think)
-
-**Fix:**
-
-1. Check your code — verify each waypoint has the action you intended
-2. Add telemetry to see which waypoint you're at:
-   ```java
-   telemetry.addData("Current Waypoint", follower.getCurrentWaypoint());
-   telemetry.update();
-   ```
-3. Re-count your waypoints starting from zero (first waypoint is #0, not #1)
-
----
-
-## Robot Doesn't Stop at the End of the Path
-
-**Symptom:** Robot coast past the final waypoint.
-
-**Likely causes:**
-
-- Final waypoint doesn't have `.slow()`
-- Motion profile time is too long (robot takes a while to decelerate)
-- Final waypoint has a high speed setting
-
-**Fix:**
-
-1. Add `.slow()` to your final waypoint:
-   ```java
-   Waypoint.at(48, 48)
-       .heading(0)
-       .slow()           // Add this
-       .buildAll()
-   ```
-2. Decrease the speed on the final waypoint: `.speed(0.3)` instead of 0.8
-3. After the path completes, add a small reverse to "back up into" the target:
-   ```java
-   follower.follow(/* ... path ... */);
-   ro.drivePID(-2, heading);  // Back up slightly
-   ```
-
----
-
-## Still Stuck?
-
-If you're still having problems:
-
-1. Check the Crawler documentation at [crawler.github.io](https://github.com/Fission310/Crawler)
-2. Ask on the FTC Community Discord (link on FTC website)
-3. Ask your coach or programming mentor
-
-Remember: every team runs into these. It's part of learning. You'll get it.
+1. Re-read [Setup](setup.md) and the [Tuning Guide](tuning-guide.md)
+2. Run the **Crawler Smoke Test** then the **Crawler System Test** — they isolate odometry, PID, and path issues
+3. Ask your coach or the FTC community Discord
 
 ---
 
 ## Next Steps
 
-**[Full Example →](example.md)** See a complete real-world autonomous with comments
+**[Full Example →](example.md)** A complete, working project

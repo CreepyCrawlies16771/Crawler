@@ -1,158 +1,107 @@
 ---
 title: Your First TeleOp
-description: Write code for driver-controlled play time
+description: Write driver-controlled movement with driveFieldRelative
 ---
 
 # Your First TeleOp
 
 *Letting the driver control the robot with a gamepad*
 
-## Creating Your TeleOp
-
-Create a new Java class called `Driver.java`:
+## The minimum working example
 
 ```java
-import org.firstinspires.ftc.teamcode.Crawler.CrawlerTeleOp;
+package org.firstinspires.ftc.teamcode.TeamscodeNotLibrary;
 
-@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "Driver", group = "Main")
-public class Driver extends CrawlerTeleOp<MyRobot> {
-    @Override
-    public void buildRobot() {
-        robot = new MyRobot();
-    }
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+
+@TeleOp(name = "Driver", group = "Crawler Examples")
+public class Driver extends LinearOpMode {
 
     @Override
-    public void loop() {
-        // This runs repeatedly while the OpMode is active
-        
-        // Drive the robot
-        driveFieldRelative(gamepad1);
-        
-        // Control the claw
-        if (gamepad2.a) {
-            robot.openClaw();
-        } else if (gamepad2.b) {
-            robot.closeClaw();
+    public void runOpMode() throws InterruptedException {
+        MyRobot robot = new MyRobot(hardwareMap);
+
+        waitForStart();
+
+        while (opModeIsActive()) {
+            robot.update();   // update odometry first
+
+            // Field-relative drive: "forward" is always away from the robot
+            robot.driveFieldRelative(
+                    -gamepad1.left_stick_y,   // forward / backward
+                    gamepad1.left_stick_x,    // strafe left / right
+                    gamepad1.right_stick_x    // rotate
+            );
+
+            // Mechanisms
+            if (gamepad1.a) robot.openClaw();
+            else if (gamepad1.b) robot.closeClaw();
+
+            // Telemetry: where does the robot think it is?
+            telemetry.addData("X (cm)", String.format("%.2f", robot.getPose().getX()));
+            telemetry.addData("Y (cm)", String.format("%.2f", robot.getPose().getY()));
+            telemetry.addData("Heading (°)", String.format("%.2f", Math.toDegrees(robot.getHeading())));
+            telemetry.update();
+
+            idle();
         }
-        
-        // Update any mechanisms that need it
-        telemetry.addData("Status", "Running");
-        telemetry.update();
+        robot.stop();
     }
 }
 ```
 
-**Key pieces:**
+## Field-relative vs robot-relative
 
-- `CrawlerTeleOp<MyRobot>` — Tells Crawler this is a TeleOp using MyRobot
-- `buildRobot()` — Sets up your robot before the driver takes control
-- `loop()` — Runs repeatedly (about 50 times per second) while the match is running
-- `gamepad1` — The driver's controller
-- `gamepad2` — The operator's controller (usually controls mechanisms)
+| | Behavior |
+|---|---|
+| `robot.driveFieldRelative(f, s, r)` | Forward always points *away from the robot* — like driving a car. Recommended. |
+| `robot.drive(forward, strafe, rotate)` | Forward is wherever the robot is *facing* — like flying a drone. Use for precise local adjustments. |
 
-## Driving the Robot
+Both take powers from **-1.0 to 1.0**, clamped by `maxDriveSpeed`.
 
-Crawler gives you two options for steering:
+## A two-gamepad setup
 
-### Field-Relative Drive (Recommended)
-
-```java
-driveFieldRelative(gamepad1);
-```
-
-This is like driving a car: the robot moves based on which direction is "forward," regardless of which way the robot is facing.
-
-Use this for most of your robot's movement.
-
-### Robot-Relative Drive
+Driver 1 moves; Driver 2 runs mechanisms:
 
 ```java
-driveRobotRelative(gamepad1);
-```
+while (opModeIsActive()) {
+    robot.update();
 
-The robot moves based on which way it's facing. If you push the stick forward but the robot is facing left, it drives left.
+    // Driver 1 — movement
+    robot.driveFieldRelative(
+            -gamepad1.left_stick_y,
+            gamepad1.left_stick_x,
+            gamepad1.right_stick_x);
 
-Use this only if you want the driver to think differently.
+    // Driver 2 — lift (target positions, RUN_TO_POSITION)
+    if (gamepad2.right_trigger > 0.1) robot.scoreHighBasket();
+    else if (gamepad2.left_trigger > 0.1) robot.liftMotor.setTargetPosition(0);
 
-> 💡 **Analogy:** Field-relative is like a self-driving car that always knows north. Robot-relative is like flying a drone where "forward" always means "forward from the drone's perspective."
-
-## Controlling Mechanisms
-
-Use button presses to control claws, lifts, and other mechanisms:
-
-```java
-if (gamepad2.a) {
-    robot.openClaw();
-}
-
-if (gamepad2.b) {
-    robot.closeClaw();
-}
-
-if (gamepad2.x) {
-    robot.raiseLift();
-}
-
-if (gamepad2.y) {
-    robot.lowerLift();
+    idle();
 }
 ```
 
-**Available buttons:**
+## Useful patterns
 
-- `gamepad2.a`, `gamepad2.b`, `gamepad2.x`, `gamepad2.y` — the colored buttons
-- `gamepad2.dpad_up`, `gamepad2.dpad_down`, `gamepad2.dpad_left`, `gamepad2.dpad_right` — the D-pad
-- `gamepad2.left_bumper`, `gamepad2.right_bumper` — the shoulder buttons (LB/RB)
-- `gamepad2.left_trigger`, `gamepad2.right_trigger` — the analog triggers (0 to 1)
-
-## Continuous Updates
-
-Some mechanisms need to be told what to do every single loop cycle.
-
-For example, if your lift has gravity, you need to give it power every loop to hold it up:
+**Slow mode** — scale the sticks for precision:
 
 ```java
-@Override
-public void loop() {
-    driveFieldRelative(gamepad1);
-    
-    // Hold the lift at current position
-    robot.updateLift();
-    
-    telemetry.addData("Status", "Running");
-    telemetry.update();
-}
+double slow = gamepad1.left_trigger > 0.1 ? 0.35 : 1.0;
+robot.driveFieldRelative(
+        -gamepad1.left_stick_y * slow,
+        gamepad1.left_stick_x * slow,
+        gamepad1.right_stick_x * slow);
 ```
 
-If you forget to call `updateLift()` every loop, the lift will fall.
+**Always call `robot.update()`** at the top of the loop so `getPose()` is fresh — `getPose()` returns **centimeters** for X/Y and **radians** for heading.
 
-> 💡 **Rule of thumb:** If a mechanism needs continuous power to stay in place, update it every loop.
-
-## Telemetry (Debugging Info)
-
-Show information on the driver station screen:
-
-```java
-@Override
-public void loop() {
-    driveFieldRelative(gamepad1);
-    
-    // Show debug info
-    telemetry.addData("Robot X Position", follower.getPoseEstimate().x);
-    telemetry.addData("Robot Y Position", follower.getPoseEstimate().y);
-    telemetry.addData("Claw Position", robot.claw.getPosition());
-    telemetry.update();
-}
-```
-
-This is super helpful for fixing problems. You can see your robot's exact position, sensor values, and more in real-time.
+> 💡 **See the field view live:** while the **Crawler Tuner** runs, the robot is drawn on the [FTC Dashboard](ftc-dashboard.md) field view automatically. In your own OpMode, add `DashboardFieldViewUtils.drawRobot(...)` to draw it yourself.
 
 ---
 
 ## Next Steps
 
-Ready to go deeper?
-
-- **[Robot-Oriented Movement →](robot-oriented.md)** Learn precise step-by-step commands
-- **[Pure Pursuit →](pure-pursuit.md)** Understand the smooth path-following algorithm
-- **[Tuning →](tuning.md)** Teach Crawler how your specific robot moves
+- **[Robot-Oriented Movement →](robot-oriented.md)** Precise `drivePID` / `strafePID` / `turnPID` moves
+- **[Pure Pursuit →](pure-pursuit.md)** How `FOFollower` steers along paths
+- **[Tuning →](tuning.md)** Teach Crawler how *your* robot moves

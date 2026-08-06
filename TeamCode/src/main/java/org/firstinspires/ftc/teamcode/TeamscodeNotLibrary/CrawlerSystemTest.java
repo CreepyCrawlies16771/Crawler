@@ -198,7 +198,7 @@ public class CrawlerSystemTest extends LinearOpMode {
             case PATH_SQUARE:
                 return "PASS if path completes and ends near start.";
             case CONFIG_REVIEW:
-                return "Values should match MyRobot.java builder chain.";
+                return "Values should match the tuned lines in MyRobot.builder().";
             default:
                 return "Run Example Auto on the field.";
         }

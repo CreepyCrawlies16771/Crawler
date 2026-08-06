@@ -1,170 +1,114 @@
 ---
-title: Using FTC Dashboard with Crawler
-description: See your robot on a field view and change values in real time without rebuilding
+title: FTC Dashboard
+description: Edit Crawler Tuner values live in the browser and watch the field view
 ---
 
-*How to use FTC Dashboard to visualize your robot and tune values without touching Android Studio.*
+# FTC Dashboard
 
-FTC Dashboard is a free tool that runs in your web browser and connects to your robot over WiFi. It shows your robot's position on a live field view and lets you change tuning values instantly without rebuilding the app.
+*Type tuning values into a web browser and watch the robot react — no recompiling.*
 
-Think of it as a window into your robot's brain — you can see exactly what the robot thinks it is doing on the field, and you can experiment with different values in the browser instead of reopening Android Studio and rebuilding each time.
+FTC Dashboard is a free tool that runs in your browser and connects to the robot over its WiFi network. With Crawler it gives you two superpowers:
 
-## Installing and connecting
+1. **A live config panel** — every `Crawler Tuner` value is editable in the browser, applied instantly
+2. **A field view** — the robot, path, and look-ahead point drawn in real time
 
-FTC Dashboard is already included as a Crawler dependency — no extra installation needed. You just need to connect to it.
+## Connecting
 
-**Steps:**
-
-1. Connect your laptop to the **same WiFi network** as your robot (same network where the Driver Station connects)
-2. Open any web browser (Chrome, Firefox, Edge, etc.)
-3. Type this address in the browser: `http://192.168.43.1:8080/dash`
-4. Press Enter
-5. You should see the FTC Dashboard interface with a field view on the left and control panels on the right
-
-**If you get "cannot connect":**
-- Double-check that your laptop is on the robot's WiFi network
-- Ask your programming lead or coach for the correct IP address — Control Hubs sometimes use non-standard addresses
-- Make sure the OpMode is running on the Driver Station
-
-> 📝 **Note:** The IP address `192.168.43.1` is the default for FTC Control Hubs. Some Expansion Hubs or older setups might use a different address. If this does not work, check your robot's network settings.
-
-## What you see during tuning
-
-The FTC Dashboard interface has three main panels:
-
-### Field view (center)
-
-The field view shows a top-down map of the FTC field with your robot's current position and movement.
-
-- **Blue dot** = your robot's current position according to odometry (what Crawler thinks the robot location is)
-- **Blue arrow** = your robot's heading/rotation
-- **Blue line** = the path the robot is following (during pure pursuit steps)
-- **Red dot** = the "lookahead point" — where the robot is trying to go next during pure pursuit (Step 9 and 10)
-
-Watch how the blue dot moves as your robot drives. If it matches the actual robot movement, your odometry is good. If it drifts or lags behind, something needs tuning.
-
-### Telemetry panel (right side, top)
-
-This shows all the same real-time values you see on the Driver Hub:
-
-- Current tuning step and name
-- Current value being tuned
-- Measurement results (e.g., heading error, distance error)
-- Status (PASS / MARGINAL / FAIL)
-
-This updates live as the robot moves and as you change values.
-
-### Config panel (left side)
-
-This shows all `@Config` values from your `RobotConfig.java` file, organized by class:
+1. Put your laptop on the **same WiFi network as the robot controller**
+2. Open a browser and go to:
 
 ```
-RobotConfig
-  └─ Odometry
-      ├─ TRACK_WIDTH: 13.0
-      ├─ CENTER_WHEEL_OFFSET: 3.5
-      ├─ WHEEL_DIAMETER: 1.37795
-      └─ TICKS_PER_REV: 2000
-  └─ RobotOriented
-      ├─ Kp: 0.05
-      ├─ strafe_Kp: 0.05
-      ├─ STEER_P: 0.03
-      └─ ...
-  └─ FieldOriented
-      ├─ DEFAULT_FOLLOW_DISTANCE: 10.0
-      ├─ DEFAULT_MOVE_SPEED: 0.7
-      └─ ...
+http://192.168.43.1:8080/dash
 ```
 
-Click on any value to edit it.
+3. Run any Crawler OpMode (the **Crawler Tuner** is the most useful)
 
-## Changing values live
+> **Can't connect?** Check the laptop is on the robot's network, the robot controller is powered, and an OpMode is running. `192.168.43.1` is the default Control Hub address.
 
-This is the most powerful feature of FTC Dashboard during tuning. Instead of pressing D-pad buttons on the gamepad, you can type values directly in the browser and they take effect immediately on the robot.
+## The Crawler Tuner config panel
 
-**How to change a value:**
+When the **Crawler Tuner** is running, the Dashboard's left panel shows a **`Crawler Tuner`** group. Every field is a live value — click it, type a new number, press **Enter**, and the tuner picks it up on the next loop and rebuilds the robot.
 
-1. In the Config panel on the left, expand the category you want (e.g., `RobotOriented`)
-2. Click on the value you want to change (e.g., `Kp: 0.048`)
-3. A text box appears — type your new number
-4. Press Enter
-5. The new value is sent to the robot instantly — no rebuild, no redeploy
-6. In the telemetry on the right, you see the value update in real time
+```
+Crawler Tuner
+├── trackWidthIn           13.0
+├── centerWheelOffsetIn     3.5
+├── wheelDiameterIn       1.37795
+├── ticksPerRev            2000
+├── driveKp / driveKi / driveKd
+├── strafeKp / strafeKi / strafeKd
+├── steerP / steerI / steerD
+├── minPower               0.15
+├── moveSpeed / turnSpeed / followDistanceCm
+├── arrivalThresholdCm / orbitThresholdCm
+├── timeoutSecs / maxDriveSpeed
+```
 
-**Example:** During Step 5 (Drive PID), instead of:
-- Pressing Right Bumper, measuring the robot, pressing D-pad up or down, repeat...
+**How it works:** the tuner's `TuningConfig` class is annotated with `@Config("Crawler Tuner")`, and all its fields are `public static`. The Dashboard edits those fields directly; the tuner re-reads them every loop. Whatever you type in the browser is exactly what the gamepad D-pad would adjust — they stay in sync.
 
-You can now:
-- Type `0.045` in the `Kp` field, press Enter
-- Press Right Bumper on the gamepad
-- Watch the robot drive to 24 inches
-- See immediately if it is better or worse than 0.048
-- Type the next value, repeat
+**Example — tuning Drive Kp without touching the gamepad:**
 
-This is **much** faster than tuning with just the gamepad.
+1. Run the tuner, go to Step 5 (PID), press **Triangle** until the test reads `Drive`
+2. In the Dashboard, click `driveKp`, type `0.06`, press **Enter**
+3. Press **RB** on the gamepad to run the 100 cm drive test
+4. Watch the telemetry — overshoot? Type `0.04`. Repeat
 
-> 💡 **Tip:** Open FTC Dashboard on your laptop and the Driver Station on a tablet side-by-side. You can control the OpMode with the gamepad while watching the field view and changing values in the browser — multitasking at its finest.
+You can try five values in the time the gamepad alone would take for two.
 
-## Watching pure pursuit in real time
+## Telemetry & the field view
 
-During Steps 9 and 10 of the tuner (follow distance and field-oriented integration test), the field view is especially useful.
+During tuning and autonomous, the right panel streams the same telemetry you see on the Driver Station:
 
-**What to watch:**
+- Current step and value (tuner)
+- Error / power / live **P·I·D terms** (PID tests — streamed from the real `RobotOrientedDrive` engine)
+- Target, distance, elapsed (path following)
+- Robot pose X / Y / heading
 
-- The blue dot should follow close behind the red dot
-- If the blue dot is far behind the red dot, your follow distance might be too large (the robot is not reacting fast enough)
-- At corners, watch the red dot "jump" to the next waypoint — the blue dot should follow smoothly without overshooting
-- If the robot cuts the corner, the blue dot goes off the path — follow distance is too large
-- If the robot is jerky or oscillates at corners, follow distance is too small
+While a tuner test is running (spin, strafe, PID drive/strafe/turn, or the min-power search), the **robot is drawn live on the field view** so you can watch the odometry move in the browser at the same time as the real robot.
 
-**During Step 9 (Follow Distance):**
-1. Note the current follow distance in the Config panel (e.g., 10.0)
-2. Start the test (Right Bumper)
-3. Watch how the robot handles the L-shaped path
-4. If it cuts the corner: change follow distance to 8.0 in the browser and try again
-5. If it is sluggish: change to 12.0 and try again
-6. Repeat until it looks smooth
+Note on the field view during autonomous paths: `RobotMovement.follow(List, double)` builds the path-polyline and follow-point drawing, but that packet isn't transmitted to the Dashboard yet, so **paths don't currently appear on the field view**. The tuner draws your **real robot** in **green** while its spin, strafe, PID, and min-power tests run.
 
-This lets you try 5 values in the time it would normally take to try 2 with gamepad controls.
+If you want the robot drawn in your own OpMode:
 
-## Re-tuning without the tuner
+```java
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import org.firstinspires.ftc.teamcode.Crawler.Dashboard.DashboardFieldViewUtils;
 
-You can also use FTC Dashboard with regular autonomous OpModes to see where your tuned values are causing issues.
+TelemetryPacket packet = new TelemetryPacket();
+DashboardFieldViewUtils.drawRobot(packet,
+        robot.getPose().getX(), robot.getPose().getY(),
+        robot.getPose().getHeading(), DashboardFieldViewUtils.FieldColor.BLUE);
+FtcDashboard.getInstance().sendTelemetryPacket(packet);
+```
 
-For example, if your robot overshoots corners during an autonomous match:
-1. Run an autonomous OpMode that follows waypoints
-2. Watch the field view — does the blue dot match the actual robot path?
-3. If the robot overshoots, adjust follow distance in the browser and run the OpMode again
-4. When you find the right value, copy it into RobotConfig and rebuild
+## Tuning without the tuner
+
+Add the `drawRobot(...)` snippet above to your own OpMode's loop, run any autonomous, and watch the field view:
+
+- Blue dot/square matches the real robot → odometry is good
+- Square drifts from the real robot during turns → track width (Step 3)
+- Square drifts sideways → center offset (Step 4)
+- Path cuts corners → lower `followDistanceCm` in the tuner, re-test
+
+Then copy the final values into `MyRobot.java` (Square snippet) and rebuild.
 
 ## Troubleshooting Dashboard
 
 | Problem | Likely cause | Fix |
-|---------|------------|-----|
-| Browser shows "cannot connect" | Laptop is not on robot WiFi | Connect to robot's WiFi network |
-| IP address wrong | Using wrong or outdated IP | Ask coach for correct IP, or check Control Hub settings |
-| Field view is blank | OpMode is not running | Start the OpMode on Driver Station |
-| Field view shows no robot | Odometry not initialized or broken | Check that encoder pods are plugged in |
-| Config panel is empty | `@Config` annotation missing from `RobotConfig` | Make sure inner classes have `@Config` annotation |
-| Values reset after stopping | This is normal behavior | Copy your final values to `RobotConfig.java` and rebuild |
-| Changes in browser do not take effect | OpMode is not running, or values not committed | Make sure OpMode is running and you pressed Enter in the text field |
+|---|---|---|
+| Browser can't connect | Laptop not on robot WiFi | Join the robot's network |
+| Field view blank | No OpMode running | Start an OpMode |
+| No robot drawn | Odometry not updating | Check encoder pods; run Smoke Test |
+| `Crawler Tuner` group missing | Tuner not running | Press Play on **Crawler Tuner** |
+| Typed value ignored | Field not committed | Press **Enter** in the field |
+| Values reset after app restart | Static fields are in-memory | Paste the Square snippet into `MyRobot.java` |
 
-## After you finish tuning
+> ⚠️ **Dashboard values are not permanent.** They live in the tuner's static fields for the lifetime of the app. After each session, paste the builder lines from **Square** (or Step 7) into `MyRobot.builder()` and rebuild.
 
-Remember: **Changes made in FTC Dashboard are temporary.** When you stop the OpMode or close the app, the values reset to what is in `RobotConfig.java`.
+---
 
-Always copy your final tuned values back into `RobotConfig.java` and rebuild:
+## Next Steps
 
-1. Write down or screenshot your best values from FTC Dashboard
-2. Open `RobotConfig.java` in Android Studio
-3. Update the `@Config` class fields with your tuned numbers
-4. Save and rebuild the app
-5. Deploy to the robot
-
-Now your tuned values are permanent, and every OpMode will use them automatically.
-
-> 💡 **Tip:** Take a screenshot of the Config panel before you close Dashboard. You can always refer to it later while editing `RobotConfig.java`.
-
-## Next steps
-
-You are now ready to tune your robot. Start with [Step-by-step tuning guide](tuning-guide.md).
+- **[Tuning →](tuning.md)** The full 7-step workflow
+- **[Configuration →](configuration.md)** What each Dashboard field does

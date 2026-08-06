@@ -1,6 +1,6 @@
 # Crawler library (do not edit for normal team setup)
 
-Teams configure robots only through `TeamscodeNotLibrary/MyRobot.java` and `RobotHardware.java`.
+Teams configure robots only through `TeamscodeNotLibrary/MyRobot.java` (device names, localizer, and tuned values all live in one builder chain).
 
 ## Design rules
 

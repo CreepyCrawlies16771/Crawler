@@ -50,6 +50,10 @@ final class TuningUtil {
         return pressed(pad.x, edge);
     }
 
+    static boolean triangle(Gamepad pad, boolean[] edge) {
+        return pressed(pad.triangle, edge);
+    }
+
     static boolean rightBumper(Gamepad pad, boolean[] edge) {
         return pressed(pad.right_bumper, edge);
     }

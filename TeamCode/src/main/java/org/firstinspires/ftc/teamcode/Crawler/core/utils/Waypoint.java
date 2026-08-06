@@ -1,9 +1,14 @@
 package org.firstinspires.ftc.teamcode.Crawler.core.utils;
 
 import org.firstinspires.ftc.teamcode.Crawler.core.Robot.CrawlerRobot;
+import org.firstinspires.ftc.teamcode.Crawler.core.errors.CrawlerError;
+import org.firstinspires.ftc.teamcode.Crawler.core.errors.CrawlerErrors;
 
 /**
  * Represents a waypoint in a path for field-oriented movement.
+ *
+ * <p>Validation happens at {@code build()} time so bad waypoints (NaN coordinates,
+ * out-of-range speeds) are caught before the path ever starts.</p>
  */
 public class Waypoint {
 
@@ -128,6 +133,15 @@ public class Waypoint {
         }
 
         public Waypoint build() {
+            if (!Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(heading)) {
+                CrawlerErrors.throwError(CrawlerError.PATH_NON_FINITE_WAYPOINT, x, y);
+            }
+            if (!(moveSpeed > 0.0 && moveSpeed <= 1.0)) {
+                CrawlerErrors.throwError(CrawlerError.PATH_BAD_SPEED, "move speed", moveSpeed);
+            }
+            if (!(turnSpeed > 0.0 && turnSpeed <= 1.0)) {
+                CrawlerErrors.throwError(CrawlerError.PATH_BAD_SPEED, "turn speed", turnSpeed);
+            }
             return new Waypoint(this);
         }
     }

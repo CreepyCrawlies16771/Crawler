@@ -1,145 +1,159 @@
 ---
 title: Your First Autonomous
-description: Write a simple path-following autonomous in 5 minutes
+description: Write a path-following autonomous with FOFollower and Waypoint
 ---
 
 # Your First Autonomous
 
 *Making your robot drive itself*
 
-## What Is an Autonomous?
+An autonomous runs when the match starts, with no driver input. With Crawler you describe the path with `Waypoint`s and a `FOFollower` drives it using pure pursuit.
 
-An autonomous (or "auto") is code that runs when the match starts. Your robot drives around the field without any driver input — it just follows the path you programmed.
-
-In FTC, you typically write different autos for red alliance and blue alliance, since the field is mirrored.
-
-## Creating Your First Autonomous
-
-Create a new Java class called `RedAuto.java` in your Crawler folder:
+## The minimum working example
 
 ```java
-import org.firstinspires.ftc.teamcode.Crawler.CrawlerAuto;
-import org.firstinspires.ftc.teamcode.Crawler.core.Waypoint;
+package org.firstinspires.ftc.teamcode.TeamscodeNotLibrary;
 
-@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Red Auto", group = "Main")
-public class RedAuto extends CrawlerAuto<MyRobot> {
-    @Override
-    public void buildRobot() {
-        // This method sets up your robot before the match starts
-        robot = new MyRobot();
-    }
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+
+import org.firstinspires.ftc.teamcode.Crawler.FieldOrient.FOFollower;
+import org.firstinspires.ftc.teamcode.Crawler.core.utils.Waypoint;
+
+@Autonomous(name = "Red Auto", group = "Crawler Examples")
+public class RedAuto extends LinearOpMode {
 
     @Override
-    public void runPath() throws InterruptedException {
-        // This method runs when you press Play on the Driver Station
-        // Your path goes here
+    public void runOpMode() throws InterruptedException {
+        // 1. Build the robot (runs during INIT)
+        MyRobot robot = new MyRobot(hardwareMap);
+
+        // 2. Create the follower. The lambda lets it check "am I still running?"
+        FOFollower follower = new FOFollower(robot, telemetry, this::opModeIsActive);
+
+        waitForStart();
+
+        // 3. Set the starting pose (required — CRWL-101 fires inside follow() otherwise)
+        robot.resetPose();
+
+        // 4. Follow the path (blocking — runs until done or stopped)
+        follower.follow(
+            Waypoint.at(0, 0, robot.config).build(),
+            Waypoint.at(100, 0, robot.config).speed(0.8).build(),
+            Waypoint.at(100, 100, robot.config)
+                .slow(robot.config)
+                .onReach(robot::openClaw)
+                .build()
+        );
+
+        // 4. Always stop the robot when done
+        robot.stop();
     }
 }
 ```
 
-**Key pieces:**
+## What each piece does
 
-- `CrawlerAuto<MyRobot>` — This says "I'm writing an autonomous using Crawler and my robot type is MyRobot"
-- `@Autonomous(name = "Red Auto", group = "Main")` — This makes your autonomous show up on the Driver Station
-- `buildRobot()` — Runs before the match starts. Sets up your robot
-- `runPath()` — Runs when you press Play. Your path and actions go here
+- **`new MyRobot(hardwareMap)`** — builds your robot (drivetrain, localizer, mechanisms) during INIT
+- **`new FOFollower(robot, telemetry, this::opModeIsActive)`** — the path follower; the third argument lets it stop immediately when you press STOP
+- **`Waypoint.at(x, y, robot.config)`** — a goal position in **centimeters**, using your robot's tuned defaults for speed / turn speed / follow distance
+- **`.speed(0.8)`** — override this waypoint's move speed (0.0–1.0)
+- **`.slow(robot.config)`** — use the tuned slow-mode speeds for precision
+- **`.onReach(() -> …)`** — run code the moment the robot arrives
+- **`.build()`** — finish the waypoint (required)
 
-## Writing Your Path
+> ⚠️ `follow()` needs **at least two** waypoints — the first is the starting point, the rest are goals. And always pass your robot's config to `Waypoint.at(x, y, robot.config)` so it picks up your tuned defaults (a bare `Waypoint.at(x, y)` overload exists, but it falls back to the library's built-in defaults).
 
-Now let's add the actual path. This is the easy part. Fill in the `runPath()` method:
+## Understanding coordinates
 
-```java
-@Override
-public void runPath() throws InterruptedException {
-    // Tell Crawler where we start on the field
-    follower.setStartingPose(new PoseData(0, 0, Math.toRadians(0)));
-    
-    // Build our path - one waypoint at a time
-    follower.follow(
-        // First waypoint: drive forward 24 inches
-        Waypoint.at(0, 24)
-            .heading(0)           // Face forward (0 degrees)
-            .speed(0.8)           // 80% power
-            .buildAll(),
-        
-        // Second waypoint: turn and drive
-        Waypoint.at(24, 24)
-            .heading(90)          // Face right (90 degrees)
-            .speed(0.8)
-            .buildAll(),
-        
-        // Third waypoint: end at the goal
-        Waypoint.at(24, 48)
-            .heading(90)
-            .speed(0.4)           // Slow down to 40% power
-            .slow()               // Special slow mode for precision
-            .onReach(() -> robot.openClaw())  // Open claw when we arrive
-            .buildAll()
-    );
-}
-```
+Coordinates are **centimeters** from your starting position, in the **field** frame:
 
-**What this does:**
+<div class="diagram" role="img" aria-label="Field coordinate system with waypoints">
+<svg viewBox="0 0 560 440" xmlns="http://www.w3.org/2000/svg" font-family="'JetBrains Mono', monospace">
+  <defs>
+    <linearGradient id="fg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f1720"/><stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+  </defs>
+  <rect x="40" y="40" width="480" height="360" rx="14" fill="url(#fg)" stroke="#374151"/>
+  <g stroke="#1f2937">
+    <line x1="160" y1="40" x2="160" y2="400"/>
+    <line x1="280" y1="40" x2="280" y2="400"/>
+    <line x1="400" y1="40" x2="400" y2="400"/>
+    <line x1="40" y1="160" x2="520" y2="160"/>
+    <line x1="40" y1="280" x2="520" y2="280"/>
+  </g>
+  <g stroke="#4ADE80" stroke-width="3" fill="none">
+    <path d="M90 320 L250 320 L250 120 L90 120 Z" opacity="0.9"/>
+  </g>
+  <g>
+    <circle cx="90"  cy="320" r="8" fill="#22C55E"/>
+    <circle cx="250" cy="320" r="8" fill="#22C55E"/>
+    <circle cx="250" cy="120" r="8" fill="#4ADE80"/>
+    <circle cx="90"  cy="120" r="8" fill="#4ADE80"/>
+  </g>
+  <g fill="#E5E7EB" font-size="13" text-anchor="middle">
+    <text x="90"  y="352">(0, 0)</text>
+    <text x="250" y="352">(100, 0)</text>
+    <text x="250" y="106">(100, 100)</text>
+    <text x="90"  y="106">(0, 100)</text>
+  </g>
+  <g fill="#9CA3AF" font-size="12">
+    <text x="20" y="60">Y+ forward</text>
+    <text x="440" y="415">X+ right →</text>
+  </g>
+</svg>
+</div>
 
-- `setStartingPose()` — Tells Crawler where your robot starts (0,0 inches from the corner, facing 0 degrees)
-- `Waypoint.at(x, y)` — Coordinates in inches from your starting position
-- `.heading(degrees)` — The direction your robot should face at this waypoint
-- `.speed(power)` — How fast to drive (0 to 1, where 1 is full speed)
-- `.slow()` — A preset that slows down for tight turns and endpoints
-- `.onReach(() -> action)` — Do something when the robot arrives at this waypoint
-- `.buildAll()` — Finish the waypoint definition and pass it to the follower
+- **X** — right is positive, left is negative
+- **Y** — forward is positive, backward is negative
+- Heading comes from the IMU; 0° is the robot's direction at start
 
-> 💡 **Waypoints are like checkpoints on the field.** You give Crawler a list, and it drives your robot through each one automatically, smoothly turning between them.
+## Running actions at waypoints
 
-## Understanding Coordinates
-
-Everything is in inches from your starting position:
-
-- **X-axis** — left (-) and right (+)
-- **Y-axis** — backward (-) and forward (+)
-- **Heading** — 0° is forward, 90° is right, 180° is backward, 270° is left
-
-## Running Actions at Waypoints
-
-The best part: you can tell the robot to do something when it reaches a waypoint.
+Actions run the instant the robot arrives — open a claw, raise a lift, fire a mechanism:
 
 ```java
-Waypoint.at(24, 48)
-    .heading(90)
-    .onReach(() -> robot.openClaw())
-    .buildAll()
+Waypoint.at(60, 0, robot.config)
+        .onReach(() -> {
+            robot.openClaw();
+            telemetry.addData("Action", "Open claw");
+            telemetry.update();
+        })
+        .build()
 ```
 
-Here are common actions:
+> ⚠️ **Keep actions fast.** `follow()` blocks, so a 2-second action pauses the robot for 2 seconds before it drives to the next waypoint.
+
+## Mixing in precise moves
+
+Pure pursuit is great for long drives; finish with a precise robot-relative move via `RobotOrientedDrive` (see [robot-oriented.md](robot-oriented.md)):
 
 ```java
-.onReach(() -> robot.openClaw())
-.onReach(() -> robot.closeClaw())
-.onReach(() -> robot.raiseLift())
-.onReach(() -> robot.lowerLift())
-.onReach(() -> {
-    // You can do multiple things
-    robot.openClaw();
-    robot.raiseLift();
-})
+import org.firstinspires.ftc.teamcode.Crawler.RobotOrient.RobotOrientedDrive;
+
+RobotOrientedDrive ro = new RobotOrientedDrive(robot, this::opModeIsActive, telemetry);
+
+robot.resetPose();      // required before following
+follower.follow(
+    Waypoint.at(0, 0, robot.config).build(),
+    Waypoint.at(48, 36, robot.config).speed(0.8).build()
+);
+
+ro.drivePID(0.2, 90);   // inch forward 20 cm, hold 90°
+robot.openClaw();
 ```
 
-> ⚠️ **Keep actions fast.** If your action takes 2 seconds, the robot will wait 2 seconds before moving to the next waypoint.
+## Running it
 
-## Running the Autonomous
+1. Deploy the app to the robot
+2. On the Driver Station, select **Red Auto**
+3. Press **Play**
 
-Once you've written your autonomous:
-
-1. **Connect your robot** to the Driver Station laptop
-2. **Open the Driver Station app** on the robot's phone
-3. **Click the Autonomous dropdown** (where it says "No Op Mode Selected")
-4. **Select "Red Auto"**
-5. **Press Play**
-
-Watch your robot follow the path. If something goes wrong, check the Troubleshooting page.
+If the robot doesn't move, check the [Troubleshooting](troubleshooting.md) page first — 9 times out of 10 it's a device name mismatch or an untuned robot.
 
 ---
 
 ## Next Steps
 
-**[Your First TeleOp →](first-teleop.md)** Write code for driver-controlled play
+**[Your First TeleOp →](first-teleop.md)** Driver-controlled movement

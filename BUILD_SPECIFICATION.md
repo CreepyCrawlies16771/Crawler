@@ -1,248 +1,396 @@
-# Crawler Build Specification
+# Crawler — Public API Reference & Build Specification
 
-You are helping build **Crawler** — an open source FTC (FIRST Tech Challenge) robotics library targeting Gauteng teams and nonprofit recipient teams. The goal is autonomous path following setup in under 30 minutes compared to Road Runner or Pedro Pathing.
+> This is the ground-truth reference for the **current** Crawler library, verified
+> line-by-line against the source in
+> `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/Crawler/`. Anything in this
+> document compiles against the real API. If a behavior is ambiguous in the source,
+> it is flagged here rather than guessed.
+>
+> User-facing walkthroughs live in `docs/` (built to `docs-html/` with `npm run build`).
 
-## Project Context
+## What Crawler is
 
-**Package:** `org.firstinspires.ftc.teamcode.Crawler`
-**Repo:** `https://github.com/CreepyCrawlies16771/Crawler` (dev branch)
-**Target:** Android/Java, FTC SDK, FTCLib core dependency
+A source-included FTC pathing library. There is no JitPack artifact — teams get it by
+copying the `Crawler` package into `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/`
+and adding the FTCLib + Dashboard dependencies.
 
-## Architecture Already Built
+**Dependencies (as configured in this repo):**
 
-```
-CrawlerRobot          — hardware abstraction, staged builder, motor control,
-                        localiser factory, drive() driveFieldRelative() stop()
-CrawlerLocaliser      — interface: update(), getPose(), resetPose(Pose2d)
-ThreeDeadWheelLocaliser — wraps FTCLib HolonomicOdometry
-TwoWheelLocaliser     — wraps FTCLib HolonomicOdometry (2 wheel variant)
-MotorEncoderLocaliser — uses drive motors as encoders
-PinpointLocaliser     — wraps GoBilda Pinpoint SDK
-RobotMovement         — pure pursuit core: follow(), getFollowPointPath(),
-                        goToPosition(), path extension, dynamic lookahead,
-                        turn fix, orbit fade
-Waypoint              — chained builder: at(x,y).at(x,y).speed().heading()
-                        .onReach(Runnable).slow().buildAll()
-Vector2d              — 2D vector with distanceTo, normalized, dot, angleTo
-CrawlerMath           — wrapAngle(), clamp(), lineCircleIntersection()
-RobotConfig           — @Config inner classes: Odometry, RobotOriented,
-                        FieldOriented, RobotBase. NO hardware names stored here.
-CrawlerAuto<R>        — abstract base: robot, follower, ro fields.
-                        buildRobot(HardwareMap) and runPath() are abstract.
-                        Both FOFollower and ROMovementEngine available.
-CrawlerTeleOp<R>      — abstract base: robot field, buildRobot() abstract,
-                        driveFieldRelative(Gamepad) and driveRobotRelative(Gamepad)
-                        helpers provided.
-TuneRobotOrientPID    — tuning OpMode, persists values to /sdcard/Crawler/tuned_pid.txt
+```groovy
+// build.dependencies.gradle
+implementation 'org.firstinspires.ftc:Inspection:11.1.0'    // … etc (FTC SDK 11.1.0)
+implementation 'com.acmerobotics.dashboard:dashboard:0.5.1'
+
+// TeamCode/build.gradle
+implementation project(':FtcRobotController')
+implementation 'org.ftclib.ftclib:core:2.1.1'
+testImplementation 'junit:junit:4.13.2'
 ```
 
-## CrawlerRobot Builder API (for reference)
+## Package layout
+
+| Package | Contents |
+|---|---|
+| `…teamcode.Crawler.core.Robot` | `CrawlerRobot` (+ nested `Config`, `Localisation`, `Builder`, stage interfaces), `driveTrain` (legacy, unused) |
+| `…teamcode.Crawler.core.Localizers` | `CrawlerLocaliser`, `ThreeDeadWheelLocaliser`, `TwoWheelLocaliser`, `PinpointLocaliser`, `MotorEncoderLocaliser`, `DevLocaliser` |
+| `…teamcode.Crawler.core.utils` | `Waypoint`, `Point`, `Vector2d`, `CrawlerMath`, `UnitConverter` |
+| `…teamcode.Crawler.FieldOrient` | `FOFollower`, `RobotMovement` |
+| `…teamcode.Crawler.RobotOrient` | `RobotOrientedDrive`, `ROMovementEngine`, `HeadingTimeline`, `AnimationBuilder`, `IndexerRotation`, `Tuner` (deprecated) |
+| `…teamcode.Crawler.Tuning` | `TuningSession`, `TuningConfig`, `TuningRobotFactory`, `TuningActiveCheck`, `TuningTelemetry` (+ package-private `TuningPidRunner`, `TuningDashboard`, `TuningUtil`, `MyRobotSnippet`) |
+| `…teamcode.Crawler.Dashboard` | `DashboardFieldViewUtils` |
+| `…teamcode.Crawler.Vision` | `AprilTagWebcam`, `Rotation` |
+| `…teamcode.Crawler.annotations` | `Experimental` (+ processor) |
+
+**Internal / do-not-reference in user code:** `TuningPidRunner`, `TuningDashboard`,
+`TuningUtil`, `MyRobotSnippet` (all package-private), `DevLocaliser` (dev-only),
+`driveTrain`, `Tuner`, `IndexerRotation`, `AnimationBuilder` (unwired).
+
+---
+
+## 1. `CrawlerRobot` (`core.Robot.CrawlerRobot`)
 
 ```java
-// Hardware names live in MyRobot — CrawlerRobot reads them via the builder
-// Teams call: new MyRobot(hardwareMap) — builder is hidden inside super()
+public class CrawlerRobot {
+    public final MotorEx frontLeft, frontRight, backLeft, backRight;   // com.arcrobotics.ftclib.hardware.motors.MotorEx
+    public final IMU imu;                                              // com.qualcomm.robotcore.hardware.IMU
+    public final Localisation localisation;
+    public final CrawlerLocaliser localiser;
+    public final Config config;
 
-protected CrawlerRobot(Builder builder) { ... }
-protected static Builder builder(HardwareMap hwMap) { ... }
+    protected CrawlerRobot(Builder builder);          // subclass via super(builder)
 
-// Staged builder chain:
-builder(hwMap)
-    .frontLeft("fl").frontRight("fr").backLeft("bl").backRight("br")
-    .motors()
-    .withThreeDeadWheels("enc_l", "enc_r", "enc_c")
-        .setTrackWidth(13.0)
-        .setCenterWheelOffset(3.5)
-    // OR .withTwoDeadWheels("l", "c").setTrackWidth(13.0)
-    // OR .withMotorEncoders()
-    // OR .withPinpoint("pinpoint").offsets(3.0, -2.5)
-```
-
-## MyRobot Pattern (for reference)
-
-```java
-public class MyRobot extends CrawlerRobot {
-    public final Servo clawServo;
-    public final DcMotor liftMotor;
-
-    public MyRobot(HardwareMap hwMap) {
-        super(
-            CrawlerRobot.builder(hwMap)
-                .frontLeft("fl").frontRight("fr")
-                .backLeft("bl").backRight("br")
-                .motors()
-                .withThreeDeadWheels("enc_l", "enc_r", "enc_c")
-                .setTrackWidth(13.0)
-                .setCenterWheelOffset(3.5)
-        );
-        clawServo = hwMap.get(Servo.class, "claw");
-        liftMotor = hwMap.get(DcMotor.class, "lift");
-    }
-
-    public void openClaw()  { clawServo.setPosition(0.8); }
-    public void closeClaw() { clawServo.setPosition(0.2); }
-    public void scoreHighBasket() { setLift(800); openClaw(); }
+    public void resetPose();                          // zero pose + IMU yaw reset
+    public void drive(double forward, double strafe, double rotate);       // robot frame, clamped to maxDriveSpeed
+    public void driveFieldRelative(double forward, double strafe, double rotate);
+    public void stop();
+    public void update();                             // advance localiser — call every loop
+    public Pose2d getPose();                          // FTCLib Pose2d: x/y CENTIMETERS, heading RADIANS
+    public double getHeading();                       // radians
+    public MotorEx getLeftEncoder();                  // null if the localizer doesn't use one
+    public MotorEx getRightEncoder();
+    public MotorEx getCenterEncoder();
 }
 ```
 
-## OpMode DX Target
+### `CrawlerRobot.Config`
+
+Every tunable value, with library defaults. Set via builder methods (below) — the
+shipped `MyRobot` example keeps the numbers inline in `MyRobot.builder()`; the tuner
+prints matching builder lines to paste there.
+
+| Field | Default | Meaning |
+|---|---|---|
+| `trackWidthIn` | 13.0 | distance between the parallel odometry wheels (in) |
+| `centerWheelOffsetIn` | 3.5 | center pod distance forward of robot center (in) |
+| `wheelDiameterIn` | 1.37795 | odometry wheel diameter (in) |
+| `ticksPerRev` | 2000 | encoder counts per wheel revolution |
+| `driveKp / driveKi / driveKd` | 0.05 / 0.0 / 0.0 | drive PID (per meter of error) |
+| `strafeKp / strafeKi / strafeKd` | 0.05 / 0.0 / 0.0 | strafe PID (per meter) |
+| `steerP / steerI / steerD` | 0.03 / 0.0 / 0.0 | heading PID (per degree) |
+| `minPower` | 0.15 | friction deadband |
+| `defaultMoveSpeed` | 0.7 | cruise power between waypoints |
+| `defaultTurnSpeed` | 0.4 | path turn-power scale |
+| `followDistanceCm` | 25.4 | pure-pursuit look-ahead radius (cm) |
+| `arrivalThresholdCm` | 5.0 | "arrived" distance (cm) |
+| `orbitThresholdCm` | 25.4 | distance over which turn power fades |
+| `slowMoveSpeed` | 0.3 | used by `Waypoint.slow(config)` |
+| `slowTurnSpeed` | 0.2 | used by `Waypoint.slow(config)` |
+| `slowFollowDistanceCm` | 12.7 | used by `Waypoint.slow(config)` |
+| `slowDownTurnRadians` | 0.5 | **stored, unused by the follower** |
+| `slowDownTurnAmount` | 0.5 | **stored, unused by the follower** |
+| `timeoutSecs` | 5.0 | waypoint leg timeout |
+| `maxDriveSpeed` | 1.0 | clamps every drive input |
+| `turnReferenceRadians` | `toRadians(30)` | heading-error scale for path turn power |
+| `ticksPerMeter()` | — | `ticksPerRev / (wheelDiameterIn × 0.0254 × π)` |
+| `ticksPerCm()` | — | `ticksPerMeter() / 100` |
+
+### The staged builder
+
+`new CrawlerRobot.Builder(HardwareMap)` returns a builder typed through four stage
+interfaces — `IMotorStage → ILocaliserStage → (localizer-specific) → IReadyStage → build()`.
+Ordering is enforced by validation at `motors()` / `build()`, not by the compiler.
 
 ```java
-// Auto
-@Autonomous(name = "Red Auto")
-public class RedAuto extends CrawlerAuto<MyRobot> {
-    @Override protected MyRobot buildRobot(HardwareMap hwMap) {
-        return new MyRobot(hwMap);
-    }
-    @Override protected void runPath() throws InterruptedException {
-        follower.follow(
-            Waypoint.at(0, 0)
-                    .at(24, 0).speed(0.8).onReach(() -> robot.openClaw())
-                    .at(24, 24).slow()
-                    .buildAll()
-        );
-        ro.drivePID(5, 0);
-        ro.turnPID(90);
-    }
-}
+new CrawlerRobot.Builder(hwMap)
+        // IMotorStage
+        .frontLeft("fl").frontRight("fr").backLeft("bl").backRight("br")
+        .imu("imu")
+        .imuOrientation(LogoFacingDirection.UP, UsbFacingDirection.FORWARD)
+        .invertFrontLeft()            // optional per-motor inversions
+        .motors()                     // throws if any motor name is missing
+        // ILocaliserStage — pick exactly one
+        .withThreeDeadWheels("enc_l", "enc_r", "enc_c")
+            .setTrackWidth(13.0)
+            .invertLeftEncoder()      // optional
+            .setCenterWheelOffset(3.5)
+        // or .withTwoDeadWheels("l","c").setTrackWidth(13.0)
+        // or .withMotorEncoders()
+        // or .withPinpoint("odo").setConfig(xOff, yOff, unit, pod, xDir, yDir)
+        // or .withDevLocaliser()
+        // IReadyStage — all optional (Config defaults otherwise)
+        .wheelDiameter(1.37795)
+        .ticksPerRev(2000)
+        .drivePid(0.05, 0.0, 0.0)
+        .strafePid(0.05, 0.0, 0.0)
+        .steerPid(0.03, 0.0, 0.0)
+        .minPower(0.15)
+        .pathDefaults(0.7, 0.4, 25.4)
+        .arrivalThresholdCm(5.0)
+        .orbitThresholdCm(25.4)
+        .timeoutSecs(5.0)
+        .maxDriveSpeed(1.0)
+        .build();
+```
 
-// TeleOp
-@TeleOp(name = "Driver")
-public class Driver extends CrawlerTeleOp<MyRobot> {
-    @Override protected MyRobot buildRobot(HardwareMap hwMap) {
-        return new MyRobot(hwMap);
-    }
-    @Override public void loop() {
-        driveFieldRelative(gamepad1);
-        if (gamepad2.a) robot.openClaw();
-        if (gamepad2.b) robot.scoreHighBasket();
+**Pinpoint note:** `setConfig(double xOffset, double yOffset, DistanceUnit,
+GoBildaPinpointDriver.GoBildaOdometryPods, EncoderDirection xDirection,
+EncoderDirection yDirection)` — the Pinpoint device must be configured in the Robot
+Controller app as a GoBILDA Pinpoint.
+
+### `CrawlerRobot.Localisation`
+
+`MotorEncoder`, `TwoDeadWheel`, `ThreeDeadWheel`, `Pinpoint`, `DevLocaliser`.
+
+---
+
+## 2. Localizers (`core.Localizers`)
+
+```java
+public interface CrawlerLocaliser {
+    void update();
+    Pose2d getPose();               // FTCLib Pose2d, cm + radians
+    void resetPose(Pose2d pose);
+}
+```
+
+All implementations are chosen through the builder — do not construct them directly.
+
+---
+
+## 3. Waypoint (`core.utils.Waypoint`)
+
+```java
+public class Waypoint {
+    public final double x, y;             // centimeters, field frame
+    public final double heading;          // stored; NOT used by FOFollower
+    public final double moveSpeed, turnSpeed, followDistance;
+    public final double slowDownTurnRadians, slowDownTurnAmount;  // stored; NOT used
+    public final Runnable onReach;
+
+    public static Builder at(double x, double y);                 // uses a default Config
+    public static Builder at(double x, double y, CrawlerRobot.Config config); // preferred
+    public Waypoint(Waypoint other);                              // copy constructor
+    public Vector2d toVector();
+    public Point toPoint();
+
+    public static class Builder {
+        public Builder(double x, double y, CrawlerRobot.Config config); // via at(...)
+        public Builder heading(double heading);   // stored only
+        public Builder speed(double speed);       // overrides moveSpeed
+        public Builder turnSpeed(double turnSpeed);
+        public Builder followDistance(double followDistance);
+        public Builder slowDown(double radians, double amount); // stored only
+        public Builder slow(CrawlerRobot.Config config);        // slowMoveSpeed/slowTurnSpeed/slowFollowDistanceCm
+        public Builder onReach(Runnable action);
+        public Waypoint build();
     }
 }
 ```
 
-## What Needs To Be Built — In Priority Order
+> `at(x, y, null)` throws `IllegalArgumentException`. `at(x, y)` uses a fresh default
+> `Config` — use the config overload so your tuned defaults apply.
 
-### 1. `DevLocaliser`
-Returns a static zero pose. No hardware. Used as fallback in `buildLocaliser()` when no localiser is configured, and during tuning OpModes that don't need real odometry.
+### `UnitConverter` (`core.utils.UnitConverter`)
+
+Crawler's field geometry is **centimeters** (waypoints, `Pose2d`, thresholds), the
+builder's odometry sizes are **inches** (track width, wheel diameter, center offset),
+and `drivePID`/`strafePID` take **meters**. `UnitConverter` bridges all of them:
 
 ```java
-public class DevLocaliser implements CrawlerLocaliser {
-    // always returns Pose2d(0, 0, 0)
-    // update() does nothing
-    // resetPose() does nothing
+public final class UnitConverter {
+    public static final double INCHES_PER_CM;   // 0.3937…
+    public static final double CM_PER_INCH;     // 2.54
+
+    public static double inToCm(double inches);
+    public static double cmToIn(double cm);
+    public static double mToCm(double meters);
+    public static double cmToM(double cm);
+    public static double mmToCm(double mm);
+    public static double cmToMm(double cm);
+    public static double ftToCm(double feet);
+    public static double cmToFt(double cm);
 }
 ```
 
-### 2. `ROMovementEngine`
-Imperative PID movement engine. Used inside `CrawlerAuto` alongside `FOFollower`. Must NOT extend `LinearOpMode` — it takes a `CrawlerRobot` and `LinearOpMode` reference in its constructor so it can call `opModeIsActive()` and `telemetry`.
+---
 
-Methods needed:
-- `drivePID(double distanceInches, double headingDegrees)` — drive forward/back using encoder distance + heading hold
-- `strafePID(double distanceInches, double headingDegrees)` — strafe using encoder distance
-- `turnPID(double targetDegrees)` — point turn to absolute heading using IMU
-- `arc(double distanceInches, HeadingTimeline timeline)` — drive while following a heading curve
+## 4. Field-oriented movement (`FieldOrient`)
 
-All PID constants come from `RobotConfig.RobotOriented`. Powers go through `robot.drive()`. Uses start-offset approach for encoder distance (not reset). All constants (`STEER_P`, min power, etc.) come from `RobotConfig` — nothing hardcoded.
-
-### 3. `FOFollower`
-Blocking wrapper around `RobotMovement`. Called from `CrawlerAuto` as `follower.follow(list)`.
+### `FOFollower`
 
 ```java
 public class FOFollower {
-    public FOFollower(CrawlerRobot robot) { ... }
-    public void follow(List<Waypoint> waypoints) throws InterruptedException { ... }
-    public void follow(Waypoint... waypoints) throws InterruptedException { ... }
+    public FOFollower(CrawlerRobot robot, Telemetry telemetry, OpModeProxy proxy);
+    public void follow(List<Waypoint> waypoints) throws InterruptedException;  // ≥ 2 waypoints
+    public void follow(Waypoint... waypoints) throws InterruptedException;
+
+    public interface OpModeProxy { boolean isActive(); }   // pass this::opModeIsActive
 }
 ```
 
-Loop per waypoint segment until `distanceTo(target) < arrivalThreshold`. Call `robot.localiser.update()` each cycle. Fire `onReach` Runnable when arrived. Call `robot.stop()` at end. Use `RobotMovement` internally for the pursuit math.
+Behavior: blocks per leg; fires each waypoint's `onReach` once; aborts after
+`config.timeoutSecs` with a warning; stops the robot at the end.
 
-### 4. `MyRobot` example
-Concrete example subclass for teams to copy. Shows: hardware name strings defined here (NOT in RobotConfig), season hardware fields, `super(builder(...))` pattern, high-level action methods.
-
-### 5. Track width tuning OpMode
-`TuneTrackWidth` — drives the robot in a full circle, measures heading error, adjusts `RobotConfig.Odometry.TRACK_WIDTH`. Uses FTC Dashboard. Saves result to `/sdcard/Crawler/tuned_track_width.txt`.
-
-### 6. Odometry accuracy tuning OpMode
-`TuneOdometry` — drives a square, measures return-to-origin error, helps teams validate localiser accuracy. Displays live pose on FTC Dashboard field view.
-
-### 7. `CrawlerStateMachine<S extends Enum<S>>`
-Generic state machine for TeleOp subsystem management.
+### `RobotMovement`
 
 ```java
-public class CrawlerStateMachine<S extends Enum<S>> {
-    public CrawlerStateMachine(S initialState) { ... }
-    public void transition(S newState) { ... }
-    public S getState() { ... }
-    public boolean inState(S state) { ... }
-    public long timeInState() { ... } // ms since last transition
+public class RobotMovement {
+    public RobotMovement(CrawlerRobot robot);
+    public void follow(List<Waypoint> allPoints, double followAngle);          // one pursuit step
+    public Waypoint getFollowPointPath(List<Waypoint> path, Point robotLocation, double followRadius);
+    public void goToPosition(double x, double y, double moveSpeed, double preferredAngle, double turnSpeed);
+    public double getWorldX();
+    public double getWorldY();
+    public double getWorldHeading();      // radians
 }
 ```
 
-## Javadoc Requirements
+`goToPosition` is the per-cycle command; it calls `robot.driveFieldRelative(...)`
+with an orbit-faded turn power (`config.orbitThresholdCm`, `config.turnReferenceRadians`).
 
-Every class and public method must have a Javadoc comment following these rules:
+---
 
-**Class-level Javadoc:**
+## 5. Robot-oriented movement (`RobotOrient`)
+
+### `RobotOrientedDrive`
+
 ```java
-/**
- * Brief one-line description.
- *
- * <p>Longer explanation of purpose, design decisions, and how it fits
- * into the Crawler architecture. Mention what layer it belongs to.</p>
- *
- * <p>Usage example:</p>
- * <pre>{@code
- * // show the typical usage pattern
- * }</pre>
- *
- * @see RelatedClass
- * @author Crawler
- */
+public class RobotOrientedDrive {
+    public RobotOrientedDrive(CrawlerRobot robot, ActiveCheck active, Telemetry telemetry);
+    public void drivePID(double targetMeters, int targetHeadingDeg);   // heading in DEGREES
+    public void strafePID(double targetMeters, int targetHeadingDeg);  // positive = right
+    public void turnPID(int targetHeadingDeg);                         // absolute IMU heading
+    public void setDebugSink(DebugSink sink);                          // per-loop observer
+
+    public interface ActiveCheck { boolean isActive(); }
+    public interface DebugSink { void onLoop(double error, double power, double p, double i, double d); }
+}
 ```
 
-**Method-level Javadoc:**
+All three block until done, timeout on `config.timeoutSecs`, and clamp power to ±0.7
+with the `minPower` deadband at low error.
+
+### `ROMovementEngine`
+
 ```java
-/**
- * Brief description of what this method does.
- *
- * <p>Longer explanation if needed — edge cases, preconditions,
- * what happens internally.</p>
- *
- * @param paramName  description of the parameter and its units
- * @param paramName2 description
- * @return           what is returned, and what it means
- * @throws ExceptionType when this is thrown
- */
+public abstract class ROMovementEngine extends LinearOpMode {
+    protected CrawlerRobot robot;
+    protected RobotOrientedDrive movement;
+
+    protected abstract CrawlerRobot buildRobot(HardwareMap hwMap);
+    public abstract void runPath() throws InterruptedException;
+
+    public void drivePID(double targetMeters, int targetAngle);   // wrappers → movement
+    public void strafePID(double targetMeters, int targetAngle);
+    public void turnPID(int targetAngle);
+}
 ```
 
-**Rules:**
-- Units must always be in the param description — e.g. `@param distanceInches distance to travel, in inches`
-- No `@author` tags — Crawler is open source, no individual attribution
-- Every `public` and `protected` member gets Javadoc
-- Package-private and `private` members get inline `//` comments only
-- Javadoc must be accurate — if the method does X, say X, not something vague
-- Cross-reference related classes with `@see`
-- For `@Config` fields, document the valid range and what happens at extremes
+`runOpMode()` builds the robot, resets pose/IMU, waits for start, calls `runPath()`,
+then stops the robot.
 
-## Style Rules
+---
 
-- No comments inside method bodies — only Javadoc on signatures
-- All constants come from `RobotConfig` — nothing hardcoded in logic
-- Instance methods only — no `static` on movement logic
-- `robot.drive()` is the only way to set motor power — never call `motor.set()` directly outside `CrawlerRobot`
-- All angles in radians internally — convert at the API boundary only
-- Use `Vector2d` not raw `double x, double y` pairs where possible
-- `throws InterruptedException` on any blocking method
+## 6. Tuning (`Tuning`)
 
-## Dependencies Available
+Public surface:
 
-```groovy
-implementation 'com.arcrobotics.ftclib:core:2.1.1'
-implementation 'com.acmerobotics.dashboard:dashboard:0.4.16'
-// GoBilda Pinpoint SDK available via hwMap.get()
-// Standard FTC SDK — LinearOpMode, HardwareMap, IMU, DcMotor, Servo etc.
+```java
+public final class TuningConfig {                        // @Config("Crawler Tuner")
+    // public static double fields mirroring CrawlerRobot.Config (minus slow* / turnReferenceRadians):
+    public static double trackWidthIn, centerWheelOffsetIn, wheelDiameterIn, ticksPerRev;
+    public static double driveKp, driveKi, driveKd, strafeKp, strafeKi, strafeKd;
+    public static double steerP, steerI, steerD, minPower;
+    public static double moveSpeed, turnSpeed, followDistanceCm, arrivalThresholdCm,
+                         orbitThresholdCm, timeoutSecs, maxDriveSpeed;
+    // package-private static CrawlerRobot.Config toConfig();
+}
+
+public interface TuningRobotFactory { CrawlerRobot create(CrawlerRobot.Config config); }
+public interface TuningActiveCheck { boolean isActive(); }
+
+public final class TuningTelemetry {
+    public TuningTelemetry(Telemetry driverStationTelemetry);   // wraps MultipleTelemetry (DS + Dashboard)
+    public Telemetry get();
+    public void clear();
+    public void addLine(String line);
+    public void addData(String caption, Object value);
+    public void displayMovementDebug(Pose2d pose, double power, double error);
+    public void update();
+}
+
+public final class TuningSession {
+    public TuningSession(TuningRobotFactory factory, Telemetry driverTelemetry,
+                         Gamepad gamepad, TuningActiveCheck active);
+    public CrawlerRobot getRobot();
+    public void loop() throws InterruptedException;    // call every OpMode loop
+}
 ```
 
-## Deliver
+**Tuner steps (1–7):** Motors → Encoders → Track width → Center offset → PID
+(Drive / Strafe / Turn / Min power) → Auto path (1 m square) → Finish (copy snippet).
+Gamepad: RB run, D-pad ↑/↓ adjust, D-pad ←/→ term, Triangle cycle test, X back,
+Circle next, Square snippet. Values persist in static fields until the app restarts.
 
-For each class: complete Java file, correct package declaration, all imports, full Javadoc on every public and protected member, no TODOs left in the code. Deliver in priority order: `DevLocaliser` first, then `ROMovementEngine`, then `FOFollower`, then `MyRobot`, then the two tuning OpModes, then `CrawlerStateMachine`.
+---
+
+## 7. Dashboard & Vision
+
+```java
+public class DashboardFieldViewUtils {
+    public static final double ROBOT_RADIUS = 9.0;
+    public enum FieldColor { RED, BLUE, GREEN, YELLOW, ORANGE, PURPLE, CYAN, MAGENTA, BLACK, WHITE; String getCode(); }
+    public static void drawLine(TelemetryPacket packet, double startX, double startY,
+                                double endX, double endY, FieldColor color);
+    public static void drawPoint(TelemetryPacket packet, double x, double y, FieldColor color);
+    public static void drawRobot(TelemetryPacket packet, double x, double y,
+                                 double headingRads, FieldColor color);
+}
+
+public class AprilTagWebcam {
+    public void init(HardwareMap hwMap, Telemetry telemetry);      // Webcam 1, 640x480
+    public void update();                                          // refresh detections
+    public List<AprilTagDetection> getDetectedTags();
+    public double getAngle(AprilTagDetection apd, Rotation rotation);
+    public AprilTagDetection getTagBySpecificId(int id);
+    public void displayDetectionTelemetry(AprilTagDetection id);
+    public void close();
+}
+
+public enum Rotation { ROLL, PITCH, YAW, RANGE, BEARING }
+```
+
+---
+
+## Javadoc & style rules (as followed by the current source)
+
+- Units in `@param` descriptions (in / cm / m / deg / rad).
+- No `@author` tags; cross-reference with `@see`.
+- Public/protected members get Javadoc; package-private/private get `//` comments.
+- **No global `RobotConfig` statics** — all constants come from `CrawlerRobot.Config`
+  via the builder, and live-tuning mirrors them in `TuningConfig`.
+- `robot.drive(...)` / `driveFieldRelative(...)` are the only motor-power entry points
+  in library logic.
+
+---
+
+## Deprecated / unwired API (flagged, not guessed)
+
+- `RobotOrient/Tuner.java` — `@Deprecated`, throws `UnsupportedOperationException`.
+- `core/Robot/driveTrain.java` — unused; unsafe cast of `MotorEx` → `DcMotor`.
+- `RobotOrient/HeadingTimeline.java`, `AnimationBuilder.java`, `IndexerRotation.java`
+  — real classes/tests, but **no engine consumes them**; `HeadingTimeline` semantics
+  are clear from its unit tests, but intended consumers are gone.
+- `Waypoint.heading` / `.slowDown(...)` — builder options whose values the follower
+  never reads.
+- `Vision/` package — functional but has no user-facing docs coverage yet.
