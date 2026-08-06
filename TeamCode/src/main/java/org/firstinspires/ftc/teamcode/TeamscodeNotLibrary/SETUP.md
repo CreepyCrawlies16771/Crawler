@@ -5,15 +5,15 @@ Teams only edit files in this folder (`TeamscodeNotLibrary`). Do not modify the 
 ## 1. Robot Configuration (5 min)
 
 1. Open the FTC Robot Configuration.
-2. Name devices to match `RobotHardware.java` (or change the strings there to match your config).
+2. Name devices to match the constants at the top of `MyRobot.java` (or change those strings to match your config).
 3. Required: four drive motors, IMU, three odometry pods (`enc_l`, `enc_r`, `enc_c`).
 
 ## 2. Crawler Tuner (15–20 min)
 
-1. Sync motor names in `Crawler/Tuning/TuningRobotConfig.java` with `RobotHardware.java` (same strings).
+1. Nothing to sync — the tuner rebuilds `MyRobot.builder()` with live values (`MyRobot.buildTuned`).
 2. On the Driver Station, run **Crawler Tuner**.
 3. Complete steps 1–7 (Circle = next, Square = copy code).
-4. Paste the printed builder lines into `MyRobot.java`.
+4. Paste the printed builder lines into the tuned section of `MyRobot.builder()`.
 5. Stop the OpMode and run again after any odometry change.
 
 ## 3. Automated smoke test (2 min)
@@ -42,8 +42,8 @@ PID values come from your `MyRobot` builder (`drivePid`, `strafePid`, `steerPid`
 
 ## Checklist
 
-- [ ] `RobotHardware` matches DS config
-- [ ] `MyRobot` builder has tuned values from Crawler Tuner
+- [ ] `MyRobot` device names match the DS config
+- [ ] `MyRobot.builder()` has tuned values from Crawler Tuner
 - [ ] Crawler Smoke Test: PASS
 - [ ] Crawler System Test: all steps pass
 - [ ] Example Auto runs on the field
@@ -52,7 +52,7 @@ PID values come from your `MyRobot` builder (`drivePid`, `strafePid`, `steerPid`
 
 | Problem | Fix |
 |--------|-----|
-| OpMode crashes on init | Wrong device name in `RobotHardware` |
+| OpMode crashes on init | Wrong device name in `MyRobot.java` |
 | Odometry barely changes | `ticksPerRev` / `wheelDiameter` in `MyRobot` |
 | Strafe spins | `setCenterWheelOffset` |
 | Turn drift | `setTrackWidth` |

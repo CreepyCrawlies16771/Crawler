@@ -52,6 +52,10 @@ public class ExampleAuto extends LinearOpMode {
         telemetry.update();
         waitForStart();
 
+        // Set the starting pose before following a path (required — CRWL-101 fires
+        // inside follow() if the pose was never initialized). Robot starts at (0, 0).
+        robot.resetPose();
+
         try {
             // Create the autonomous path with waypoints and callbacks
             follower.follow(

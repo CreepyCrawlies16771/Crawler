@@ -1,86 +1,96 @@
 ---
-title: Tuning Your Robot
-description: Learn why tuning matters and how Crawler guides you through every step
+title: Tuning Overview
+description: Why tuning matters, what Crawler tunes, and the order it does it in
 ---
 
-*What tuning is, why it matters, and how Crawler makes it simple*
+# Tuning Overview
+
+*Why tuning matters, what Crawler tunes, and why the order matters*
 
 ## Why tuning matters
 
-Imagine trying to walk to a target while blindfolded. If someone told you that every step is exactly 12 inches but your actual stride is only 10 inches, you would always stop short. Your brain would need to re-learn how many steps it actually takes to reach the target.
+Imagine walking toward a target while blindfolded, believing every stride is exactly 30 cm — but your real stride is 25 cm. You'd stop short every single time. A robot is exactly the same, except it can't feel the floor: it only knows encoder ticks and IMU readings.
 
-Your robot has the same problem.
+Tuning teaches Crawler the truth about **your** robot:
 
-When you build your robot, the encoder wheels measure how fast and how far the motors turn. But Crawler doesn't automatically know your robot's exact size, wheel diameter, or how the wheels are positioned. Without tuning, Crawler makes guesses — and guesses lead to errors that get bigger the farther the robot travels.
+- How wide the odometry wheels are apart (**track width**)
+- How far the center wheel sits from the robot's center (**center offset**)
+- How big the wheels really are and how many ticks a revolution produces (**wheel diameter / ticks per rev**)
+- How much power is needed to overcome friction (**min power**)
+- How aggressively to correct position and heading errors (**PID gains**)
+- How fast to cruise and how far ahead to look (**move speed / follow distance**)
 
-Tuning teaches Crawler the truth about **your specific robot**. It tells Crawler:
-- How wide your robot actually is
-- How fast your wheels actually spin
-- How much power to apply to stop exactly where you want
-- How to follow a smooth path without overshooting corners
+Without these, everything drifts — and the errors grow the farther the robot travels.
 
-Once you tune, Crawler can drive accurately across the field, turn predictably, and follow complex paths — all without overshooting, drifting, or crashing.
+## What Crawler tunes
 
-## What you will tune
+<div class="diagram" role="img" aria-label="Tuning stages: odometry, then PID, then path following">
+<svg viewBox="0 0 760 190" xmlns="http://www.w3.org/2000/svg" font-family="'JetBrains Mono', monospace">
+  <defs>
+    <linearGradient id="sg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4ADE80"/><stop offset="1" stop-color="#22C55E"/>
+    </linearGradient>
+  </defs>
+  <rect x="20"  y="40" width="220" height="110" rx="14" fill="#0f1720" stroke="#4ADE80" stroke-width="2"/>
+  <rect x="270" y="40" width="220" height="110" rx="14" fill="#0f1720" stroke="#22C55E" stroke-width="2"/>
+  <rect x="520" y="40" width="220" height="110" rx="14" fill="#0f1720" stroke="url(#sg)" stroke-width="3"/>
+  <g fill="#E5E7EB" font-size="13" text-anchor="middle">
+    <text x="130" y="72">1 · Odometry</text>
+    <text x="130" y="94" fill="#9CA3AF" font-size="11">track width · center offset</text>
+    <text x="130" y="112" fill="#9CA3AF" font-size="11">wheel diameter · ticks/rev</text>
+    <text x="130" y="134" fill="#4ADE80" font-size="11">Steps 1–4</text>
+    <text x="380" y="72">2 · Robot-relative PID</text>
+    <text x="380" y="94" fill="#9CA3AF" font-size="11">drive/strafe Kp·Ki·Kd</text>
+    <text x="380" y="112" fill="#9CA3AF" font-size="11">steer P·I·D · min power</text>
+    <text x="380" y="134" fill="#4ADE80" font-size="11">Step 5</text>
+    <text x="630" y="72">3 · Path following</text>
+    <text x="630" y="94" fill="#9CA3AF" font-size="11">move speed · turn speed</text>
+    <text x="630" y="112" fill="#9CA3AF" font-size="11">follow distance · thresholds</text>
+    <text x="630" y="134" fill="#4ADE80" font-size="11">Steps 6–7</text>
+  </g>
+  <g stroke="#4ADE80" stroke-width="3" fill="none">
+    <path d="M240 95 H270"/><path d="M490 95 H520"/>
+  </g>
+</svg>
+</div>
 
-Crawler has three areas to tune, depending on which movement commands you use:
+| Area | What it controls | Used by |
+|---|---|---|
+| **Odometry** | How accurately the robot knows where it is | Everything |
+| **Robot-relative PID** | How precisely `drive`, `strafe`, and `turn` stop on target | `RobotOrientedDrive`, TeleOp precision |
+| **Path following** | How smoothly the robot tracks waypoint paths | `FOFollower` / pure pursuit |
 
-| Area | What it controls | When you need it |
-|------|-----------------|-----------------|
-| **Odometry** | How accurately the robot tracks its position on the field | Always — needed for any autonomous |
-| **Robot-Oriented PID** | How precisely commands like `drivePID()` and `turnPID()` stop at the exact distance or angle | If you use robot-oriented commands |
-| **Pure Pursuit** | How smoothly the robot follows waypoint paths without cutting corners or oscillating | If you use field-oriented or path-following commands |
+## Why the order matters
 
-Most teams need all three.
+You cannot tune PID before odometry is accurate — the PID loop measures its error from odometry, so bad odometry looks like a bad PID controller. And you can't tune path following before the PID loop is stable, because pure pursuit commands drive through the same motors.
 
-## How Crawler's tuner works
-
-Crawler includes a single OpMode called `CrawlerTuner` that guides you through every tuning step in the correct order.
-
-**The key insight:** You cannot tune PID before odometry is correct, and you cannot tune field-oriented movement without solid PID values. Crawler locks steps in this order so you always tune the foundation first.
-
-Here is what makes it different from tuning manually:
-
-- **One OpMode does everything** — no separate scripts or external tools
-- **Steps cannot be skipped** — they are locked in the right order
-- **Each step shows you exactly what to do** — press Right Bumper, adjust with D-pad, press Circle when done
-- **Each step grades itself** — you see PASS ✓, MARGINAL ⚠, or FAIL ✗ on the Driver Hub screen
-- **Values are visible live** — telemetry on the Driver Hub updates as you adjust
-- **Optional live visualization** — FTC Dashboard shows your robot's position on a field view in real time
-- **Results saved automatically** — all tuned values are saved to `/sdcard/Crawler/tune.json` so you do not lose them
-
-## The V1.0 workflow
-
-Here is the honest truth about V1.0: after the tuner finds your values, you must manually copy them into `RobotConfig.java`, rebuild the app, and redeploy to make them permanent.
-
-A future version of Crawler will load values from the saved JSON file automatically — but V1.0 is intentionally simple, and this manual step keeps it that way.
-
-The workflow is straightforward:
+The tuner locks the order so the foundation is always solid first:
 
 ```
-1. Run the tuner → see the tuned value on Driver Hub
-2. Write that value into RobotConfig.java in Android Studio
-3. Build and deploy the app
-4. Run the tuner again to verify (values now load from RobotConfig)
+Odometry (steps 1–4)  →  PID (step 5)  →  Path following (steps 6–7)
 ```
 
-You repeat this loop for each area you tune (Odometry, then Robot-Oriented, then Pure Pursuit).
+## The tuner workflow
 
-> 📝 **Note:** In a future version of Crawler, this manual copy step will go away — Crawler will load the saved values automatically from the JSON. For V1.0, you just need to spend 2 minutes typing numbers across once per area. It is not hard, just a little repetitive.
+1. **Run the tuner** — a TeleOp named **Crawler Tuner**
+2. **Adjust values** — with the gamepad (D-pad + RB) or by typing into **FTC Dashboard** → `Crawler Tuner`
+3. **Test** — each step runs a real test and reports the result on the Driver Station
+4. **Copy** — press **Square** (or finish Step 7) to print the tuned builder lines
+5. **Paste** — into the tuned section of `MyRobot.builder()`, rebuild, redeploy
+6. **Verify** — run the **Crawler Smoke Test** and **Crawler System Test**
 
 ## Before you start
 
-Check this checklist before running the tuner for the first time:
+- ✓ Robot fully wired; all device names in `MyRobot.java` match the Driver Hub configuration
+- ✓ Odometry pods mounted, plugged in, spinning freely
+- ✓ 3×3 m clear floor space
+- ✓ Battery above 80% (voltage affects power — tune at competition conditions)
+- ✓ FTC Dashboard open on a laptop on the robot's WiFi
 
-- ✓ Robot is fully built and wired
-- ✓ All motor names in `MyRobot.java` match the Driver Hub configuration **exactly** (e.g., `"frontLeft"` must be named `frontLeft` in the Driver Hub)
-- ✓ Odometry encoder pods are mounted, plugged in, and can rotate freely
-- ✓ You have a clear 3×3 meter space on the floor to test (or at least enough room for the steps you are running)
-- ✓ Battery is charged above 80% (low battery causes power inconsistencies)
-- ✓ FTC Dashboard is open in a browser on a laptop connected to the robot's WiFi (optional but highly recommended for steps 9 and 10)
+> 💡 **Tune at competition voltage.** A low battery changes how much power "0.5" actually delivers. If your robot feels different on match day, re-check the PID and min power values.
 
-If any of these are missing, fix them now before starting. A wrong motor name or loose encoder pod will make tuning impossible.
+---
 
-## Next steps
+## Next Steps
 
-When you are ready, move to [Step-by-step tuning guide](tuning-guide.md) to start the tuner.
+**[Start tuning →](tuning.md)** The 7 steps and gamepad controls

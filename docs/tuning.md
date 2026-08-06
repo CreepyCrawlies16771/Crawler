@@ -1,143 +1,116 @@
 ---
 title: Tuning
-description: Teach Crawler exactly how your specific robot moves using the guided tuner
+description: Teach Crawler exactly how your robot moves with the 7-step guided tuner
 ---
 
 # Tuning
 
-*The most important step: teaching Crawler how your robot behaves*
+*The most important step: teaching Crawler how your specific robot behaves*
 
-## Why Tuning Matters
+Every robot is different. Same chassis, same motors, different wheels — different reality. Without tuning, Crawler's guesses are close but wrong: your robot might drive 22 cm when you asked for 25, or drift sideways while going straight.
 
-Here's the thing: every robot is different.
+The **Crawler Tuner** fixes that. It walks you through seven short tests, and every value can be edited **live in the FTC Dashboard** — you type numbers in the browser, the robot rebuilds itself, and you re-test. No recompiling between adjustments.
 
-Even if two robots look identical, their motors have slightly different power curves, their wheels have different traction, and their weight distribution is unique. Without tuning, Crawler doesn't know how *your specific* robot moves.
+**First tune: ~30–45 minutes.** Re-tuning after a gear swap or rebuild: ~5 minutes.
 
-**Without tuning:** Your robot might drive 24 inches when you ask it to drive 22 inches, or it might only drive 20 inches.
+## Getting started
 
-**With tuning:** Crawler knows your robot inside and out and compensates automatically.
+1. Nothing to sync — the tuner rebuilds `MyRobot.builder()` with the live values
+2. Deploy the app
+3. Select **Crawler Tuner** (a TeleOp) on the Driver Station
+4. Open **FTC Dashboard** in a browser: `http://192.168.43.1:8080/dash`
+5. Press **Play**
 
-The good news: Crawler has a guided tuner that walks you through everything step by step. It takes 45 minutes the first time. Future re-tunings take 5 minutes.
-
-## The Guided Tuner
-
-The tuner is a special autonomous that runs a series of tests and learns from them.
-
-Create a `MyTuner.java` file:
-
-```java
-import org.firstinspires.ftc.teamcode.Crawler.core.CrawlerTuner;
-
-@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Tuner", group = "Tuning")
-public class MyTuner extends CrawlerTuner<MyRobot> {
-    @Override
-    public void buildRobot() {
-        robot = new MyRobot();
-    }
-}
-```
-
-That's literally it. The tuner handles everything. One file. Done.
-
-## The 11 Tuning Steps
-
-Here's what the tuner will ask you to do:
-
-| Step | Name | What You Do | Time |
-|------|------|-----------|------|
-| 1 | **Verify Hardware** | Move each motor to confirm direction | 2 min |
-| 2 | **Motor Powers** | Hold buttons to find each motor's max speed | 3 min |
-| 3 | **Track Width** | Drive straight; tuner calculates wheelbase | 3 min |
-| 4 | **Forward Offset** | Position sensor; tuner calibrates | 2 min |
-| 5 | **Lateral Multiplier** | Strafe straight; tuner auto-corrects | 3 min |
-| 6 | **Localizer Forward** | Drive in a line; tuner measures accuracy | 5 min |
-| 7 | **Localizer Strafe** | Strafe in a line; tuner measures accuracy | 5 min |
-| 8 | **Rotation Multiplier** | Turn in a circle; tuner calibrates rotations | 3 min |
-| 9 | **IMU Heading Offset** | Robot faces a marking; tuner sets heading | 2 min |
-| 10 | **Max Acceleration** | Robot accelerates; tuner measures limits | 3 min |
-| 11 | **Finalize** | Tuner saves all values | 1 min |
-
-> 💡 **First-time tuning = 45-60 minutes total.** Just follow what the tuner says. You'll get one warning if something seems wrong, but re-run the previous step and try again.
-
-## Gamepad Controls
-
-The tuner uses your gamepad a lot:
-
-| Button | Action |
-|--------|--------|
-| A | Confirm, move to next step |
-| B | Go back one step |
-| X | Pause/resume tuning |
-| Y | Skip this step (only if instructed) |
-| Right bumper | Increase value |
-| Left bumper | Decrease value |
-| Right trigger | Increase value (fine) |
-| Left trigger | Decrease value (fine) |
-| D-pad up/down | Adjust value |
-
-Pay attention to the screen. The tuner tells you what to press.
-
-## What to Expect
-
-**Some steps feel manual.** In step 2, you'll hold buttons and watch motors spin. That's fine — this is the tuner learning.
-
-**You'll be asked to drive straight.** Steps 6 and 7 ask you to drive your robot in a straight line for a known distance. Make sure your floor is clear and you have 10+ feet of space.
-
-**If a step shows FAIL,** don't skip it. Instead:
-1. Go back to the previous step
-2. Re-run the previous step
-3. Try this step again
-
-**Keep tuning values,** they're saved to your robot's onboard storage.
-
-## After Tuning
-
-When tuning finishes, Crawler saves all values to:
+You'll see a `Crawler Tuner` config panel in the Dashboard — every value the tuner manages lives there:
 
 ```
-/sdcard/Crawler/tune.json
+Crawler Tuner
+├── trackWidthIn          13.0
+├── centerWheelOffsetIn    3.5
+├── wheelDiameterIn      1.37795
+├── ticksPerRev           2000
+├── driveKp / driveKi / driveKd
+├── strafeKp / strafeKi / strafeKd
+├── steerP / steerI / steerD
+├── minPower              0.15
+├── moveSpeed / turnSpeed / followDistanceCm
+├── arrivalThresholdCm / orbitThresholdCm
+├── timeoutSecs / maxDriveSpeed
 ```
 
-These values apply immediately to all your autonomouses.
+> 💡 **The workflow:** type values in the Dashboard (or nudge them with the gamepad) → press **RB** to run the test → watch the result on the Driver Station and the Dashboard telemetry → repeat until it passes → **Square** to print the final builder code for `MyRobot.java`.
 
-**To make values permanent** (so they survive a phone reset), copy them into `RobotConfig`:
+## The 7 steps
 
-```java
-public class RobotConfig {
-    public static final float TRACK_WIDTH = 8.75f;      // Value from tuning
-    public static final float FORWARD_OFFSET = 0.15f;
-    public static final float LATERAL_MULTIPLIER = 1.04f;
-    // ... more values ...
-}
+| # | Step | What you do | Pass looks like |
+|---|---|---|---|
+| 1 | **Motors** | Hold RB / LB / RT / LT — check each wheel spins the right way | All four spin forward |
+| 2 | **Encoders** | D-pad to set wheel diameter & ticks/rev; RB spins the drive wheels | Encoder counts climb smoothly |
+| 3 | **Track width** | D-pad to adjust; RB spins the robot 10 turns | Odometry rotation matches IMU (within 5°) |
+| 4 | **Center offset** | D-pad to adjust; RB strafes 1 m | Heading drift under 2° while strafing |
+| 5 | **PID** | Triangle cycles Drive / Strafe / Turn / Min power; D-pad L/R picks P, I, or D; U/D adjusts; RB runs | Smooth stop at target with minimal overshoot |
+| 6 | **Auto path** | D-pad adjusts move speed; RB runs a 1 m square | Robot returns near its start |
+| 7 | **Finish** | Press Square | Values printed as builder lines for `MyRobot.builder()` |
+
+## Gamepad controls
+
+| Button | What it does |
+|---|---|
+| **RB** | Run the current test / measurement |
+| **D-pad up / down** | Increase / decrease the current value |
+| **D-pad left / right** | In the PID step: pick which term to adjust (P → I → D) |
+| **Triangle** | In the PID step: switch test (Drive → Strafe → Turn → Min power) |
+| **X** | Go back a step |
+| **Circle** | Accept this step and move to the next |
+| **Square** | Toggle the `MyRobot.builder()` snippet (also shown at Step 7) |
+
+Everything you can do with the gamepad you can also do by typing into the Dashboard — the two stay in sync automatically.
+
+> 💡 **The tuner uses the real movement engine.** The PID tests (Step 5) run through the exact same `RobotOrientedDrive` (`drivePID` / `strafePID` / `turnPID`) loops your autos use — not a simplified copy — so the values you tune behave identically in a match.
+
+## Watching it live on FTC Dashboard
+
+The tuner streams everywhere at once:
+
+- **Telemetry panel** — every test reports error, power, and the live P/I/D terms, on both the Driver Station and the Dashboard
+- **Field view** — the robot is drawn live while it spins (Step 3), strafes (Step 4), and runs the PID / min-power tests (Step 5)
+- **Config panel** — type any value to change it instantly
+
+## What the screen shows
+
+```
+Crawler Tuner | Step 3/7: Track width
+Circle: next  X: back  Square: MyRobot builder code
+Edit values live in FTC Dashboard -> Crawler Tuner
+D-pad U/D: track width  RB: spin test  (rebuilds robot)
+trackWidth in: 13.0
+Track width OK — paste into MyRobot
 ```
 
-Your coach can help with this if needed.
+## After tuning
 
-## Re-Tuning
+1. Press **Square** (or finish Step 7) — the tuner prints the exact tuned values
+2. Copy them into the tuned section of `MyRobot.builder()`
+3. Rebuild and deploy
+4. Run the **Crawler Smoke Test** — a 2-minute sanity check that odometry is reporting movement
 
-If your robot feels off later (overshooting waypoints, drifting, etc.), you can re-tune just the affected step:
+> ⚠️ **Values are not permanent until you paste them.** The Dashboard values live in the tuner's memory only while the app runs. Pasting the printed builder lines into `MyRobot.builder()` is what makes them permanent.
 
-1. Open the tuner again
-2. Press **Y** to skip steps until you reach the problematic one
-3. Re-run that step
-4. Continue to the end
+## Re-tuning
 
-Or run the full tuning again — it only takes 5 minutes the second time once you know what to expect.
+Your robot feels off? Re-run the tuner and adjust just the affected value in the Dashboard:
 
-## Tips
-
-**Don't rush.** If the tuner is at step 6 and you're not confident, press B to go back and review.
-
-**Clear the floor.** Steps that involve driving need 10+ feet of clear space.
-
-**Use a straight line on the floor.** Use tape or chalk to mark where "straight" is.
-
-**Keep the robot still between steps.** Unless the tuner tells you to move, keep your robot in the same spot.
-
-**Tuning is robot-specific.** If your team building a new robot, you tuned it once, don't need to re-tune. If you change wheels, motors, or geometry, re-tune.
+| Symptom | Tune |
+|---|---|
+| Robot drives 90 cm when told 100 | `wheelDiameterIn` / `ticksPerRev` (Step 2) |
+| Drifts sideways going straight | `trackWidthIn` (Step 3) |
+| Spins while strafing | `centerWheelOffsetIn` (Step 4) |
+| Overshoots targets / oscillates | Step 5 PID gains |
+| Robot never starts moving at low power | `minPower` (Step 5) |
+| Overshoots waypoints on paths | `moveSpeed`, `followDistanceCm` (Step 6) |
 
 ---
 
 ## Next Steps
 
-**[Configuration Reference →](configuration.md)** Understand all the tuning values and what they do
+**[Step-by-Step Guide →](tuning-guide.md)** What to do physically for every step

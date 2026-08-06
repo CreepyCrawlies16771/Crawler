@@ -87,8 +87,11 @@ public class CrawlerMath {
 
         double quadraticB = (2.0 * m1 * y1) - (2.0 * Math.pow(m1, 2) * x1);
 
+        // quadraticC = m1^2 * x1^2 - 2 * y1 * m1 * x1 + y1^2 - radius^2
+        // (the + y1^2 term comes from expanding (y - circleCenter.y)^2)
         double quadraticC = (Math.pow(m1, 2) * Math.pow(x1, 2))
                 - (2.0 * y1 * m1 * x1)
+                + Math.pow(y1, 2)
                 - Math.pow(radius, 2);
 
         ArrayList<Point> allPoints = new ArrayList<>();

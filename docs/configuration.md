@@ -1,211 +1,107 @@
 ---
 title: Configuration Reference
-description: Understand every value that controls how Crawler behaves
+description: Every CrawlerRobot.Config value, its default, and what it controls
 ---
 
 # Configuration Reference
 
-*Deep dive into the tuning values that control your robot*
+*Every value that controls how Crawler moves, and how to set it*
 
-## The RobotConfig Class
+Your robot's tuning values live in **one place**: the builder chain in `MyRobot.builder()`. Those numbers fill in `CrawlerRobot.Config`, which every movement system reads. The **Crawler Tuner** prints the matching builder lines to paste into `builder()` when you're done — this page explains each value so you can also adjust them by hand.
 
-When you tune your robot, Crawler saves numbers that describe exactly how your robot moves. These live in a class called `RobotConfig`:
+> 🚨 **Never put motor or servo *names* here.** Device names are string constants at the top of `MyRobot.java`. This config is only numbers.
 
-```java
-public class RobotConfig {
-    // Hardware values (don't change these)
-    public static final int MOTOR_TICK_RESOLUTION = 384;
-    
-    // Mechanical measurements (from tuning)
-    public static final float TRACK_WIDTH = 8.75f;
-    public static final float FORWARD_OFFSET = 0.15f;
-    
-    // Behavior tuning
-    public static final float LOOKAHEAD_DISTANCE = 6.0f;
-    // ... more values ...
-}
+## Units
+
+- **inches** — track width, center offset, wheel diameter
+- **centimeters** — waypoint coordinates, follow distance, arrival/orbit thresholds
+- **power** — speeds are 0.0–1.0
+- **per meter / per degree** — PID gains
+
+## Odometry
+
+| Builder method | Config field | Default | Unit | What it does |
+|---|---|---|---|---|
+| `.setTrackWidth(x)` | `trackWidthIn` | 13.0 | in | Distance between the two parallel odometry wheels. Controls how wheel rotation becomes heading change. Too small → odometry "over-rotates" and the robot drifts sideways. |
+| `.setCenterWheelOffset(x)` | `centerWheelOffsetIn` | 3.5 | in | How far the perpendicular center wheel sits forward of the robot center. Wrong → the robot appears to rotate while strafing. |
+| `.wheelDiameter(x)` | `wheelDiameterIn` | 1.37795 | in | Diameter of the odometry wheels. Converts ticks → distance. 35 mm pod = 1.37795. |
+| `.ticksPerRev(x)` | `ticksPerRev` | 2000 | ticks | Encoder counts per full wheel revolution. GoBILDA 5203 pods: 2000; REV built-ins: 560. |
+
+`ticksPerRev` and `wheelDiameterIn` combine into `ticksPerMeter()` (used internally):
+
+```
+ticksPerMeter = ticksPerRev / (wheelDiameterIn × 0.0254 × π)
 ```
 
-> 🚨 **Important:** Never put motor or servo names here. Those go in `MyRobot.java`. This class is *only* for the numbers that control movement.
-
-## Localizer Values
-
-These control how your robot knows where it is.
-
-### `TRACK_WIDTH`
-**What it is:** The distance between your left and right wheels (in inches)
-
-**Default:** 8.75" (typical for a 28" chassis)
-
-**Range:** 6" to 12"
-
-**If too small:** Robot spins in circles during tuning, odometry drifts
-
-**If too large:** Robot won't turn properly, coordinates off by large amounts
-
-### `FORWARD_OFFSET`
-**What it is:** Distance from the center of your robot to the forward odometry pod (in inches)
-
-**Default:** 0.15"
-
-**Range:** -2" to +2"
-
-**If wrong:** Forward/backward movement is accurate, but turning causes position errors
-
-### `LATERAL_MULTIPLIER`
-**What it is:** A scaling factor for side-to-side movement (unitless)
-
-**Default:** 1.04
-
-**Range:** 0.95 to 1.15
-
-**If too small:** Strafing doesn't go as far as commanded
-
-**If too large:** Strafing overshoots
-
-### `ROTATION_MULTIPLIER`
-**What it is:** A scaling factor for turn accuracy (unitless)
-
-**Default:** 1.0
-
-**Range:** 0.9 to 1.1
-
-**If too small:** Robot doesn't turn as many degrees as commanded
-
-**If too large:** Robot spins too far
-
-### `HEADING_OFFSET`
-**What it is:** Correction for the IMU's compass zero point (in degrees)
-
-**Default:** 0
-
-**Range:** -360 to 360
-
-**If wrong:** Robot's heading estimate is rotated compared to reality
-
-## Pure Pursuit Behavior
-
-These control how the pure pursuit algorithm steers your robot.
-
-### `LOOKAHEAD_DISTANCE`
-**What it is:** How far ahead the robot looks when following a path (in inches)
-
-**Default:** 6.0"
-
-**Range:** 3.0" to 15.0"
-
-**If too small:** Jerky turns, robot overshoots waypoints
-
-**If too large:** Smooth turns, but robot might cut corners and miss waypoints
-
-### `LATERAL_DISTANCE_COEFFICIENT`
-**What it is:** How aggressively to correct side-to-side errors (unitless)
-
-**Default:** 1.0
-
-**Range:** 0.5 to 2.0
-
-**If too small:** Robot drifts sideways and doesn't correct
-
-**If too large:** Robot oscillates (wiggles) side to side
-
-### `HEADING_DISTANCE_COEFFICIENT`
-**What it is:** How aggressively to correct rotation errors (unitless)
-
-**Default:** 1.0
-
-**Range:** 0.5 to 2.0
-
-**If too small:** Robot's heading drifts away from desired direction
-
-**If too large:** Robot overshoots heading and wobbles back and forth
-
-## Motion Profile
-
-These control acceleration and deceleration.
-
-### `MOTION_PROFILE_TIME`
-**What it is:** How many seconds the robot takes to go from zero to full speed (in seconds)
-
-**Default:** 0.5s
-
-**Range:** 0.2s to 2.0s
-
-**If too small:** Robot jerks suddenly (hard on mechanics)
-
-**If too large:** Acceleration feels sluggish, paths take longer
-
-### `MAX_VELOCITY`
-**What it is:** Maximum speed your motors can achieve (in inches per second)
-
-**Default:** 48.0 in/s
-
-**Range:** 30.0 to 80.0 in/s
-
-**If too small:** Autonomous pathfinding never reaches the speeds you specify
-
-**If too large:** Robot commands speeds it can't actually achieve, jerks/stutters
-
-### `MAX_ACCELERATION`
-**What it is:** Maximum acceleration available (in inches per second per second)
-
-**Default:** 24.0 in/s²
-
-**Range:** 10.0 to 60.0 in/s²
-
-**If too small:** Paths are sluggish and slow
-
-**If too large:** Robot can't produce this acceleration, paths are jerky
-
-## Motor and Hardware
-
-These describe your hardware and don't usually change.
-
-### `MOTOR_TICK_RESOLUTION`
-**What it is:** Encoder ticks per revolution of a motor (for the motors you're using)
-
-**Default:** 384 (for common FTC motors)
-
-**Don't change this** unless you've switched to a different motor type.
-
-### `WHEEL_DIAMETER`
-**What it is:** The diameter of your drive wheels (in inches)
-
-**Default:** 3.78" (common FTC wheels)
-
-**Range:** 2.5" to 5.0"
-
-**If wrong:** Driving distances are off by proportional amount
-
-### `DEAD_WHEEL_DIAMETER`
-**What it is:** The diameter of your odometry wheels (in inches)
-
-**Default:** 1.5" (standard shaft encoder wheel)
-
-**Range:** 1.2" to 2.0"
-
-**If wrong:** Position tracking is off
-
-## How to Adjust Values
-
-**Option 1: Re-run tuning**
-
-This is the easiest. Just run the tuner again and let it update the values automatically. Takes 45 minutes first time, 5 minutes to re-tune one step.
-
-**Option 2: Manual fine-tuning**
-
-If your robot is close but not perfect:
-
-1. Identify the problem (robot drifts left, overshoots waypoints, etc.)
-2. Find the related value from this reference
-3. Adjust by 5-10% and test
-4. Repeat until happy
-
-**Option 3: Copy from tuning to config**
-
-After running the tuner, copy the values from `/sdcard/Crawler/tune.json` into your `RobotConfig` class to make them permanent.
-
-> 💡 **Start conservative:** Adjust values slowly. Small changes have big effects.
+If every distance is off by the same ratio, fix these two — not the PID.
+
+## Robot-relative PID
+
+| Builder method | Config field | Default | What it does |
+|---|---|---|---|
+| `.drivePid(kp, ki, kd)` | `driveKp` / `driveKi` / `driveKd` | 0.05 / 0 / 0 | Gains on forward distance error (per meter). |
+| `.strafePid(kp, ki, kd)` | `strafeKp` / `strafeKi` / `strafeKd` | 0.05 / 0 / 0 | Gains on strafe distance error (per meter). Often needs a bit more push than drive. |
+| `.steerPid(p, i, d)` | `steerP` / `steerI` / `steerD` | 0.03 / 0 / 0 | Gains on heading error (per degree). Used to hold a heading while driving and to turn in place. |
+| `.minPower(x)` | `minPower` | 0.15 | Smallest power that overcomes static friction. Below this the motors may not move at all. |
+
+**How the loop uses them** (both `TuningPidRunner` and `RobotOrientedDrive`):
+
+```
+power = clamp( Kp × error + Ki × ∫error dt + Kd × d(error)/dt )
+```
+
+- **P** — main force toward the target. Too low: stops short. Too high: oscillates.
+- **I** — fixes steady-state error (stopping a couple of cm short). The loops reset the integral when the error sign flips, so windup is limited.
+- **D** — damps oscillation. Add only if the robot wobbles around the target.
+- **minPower** — deadband applied when commanded power is near zero.
+
+## Path following
+
+| Builder method | Config field | Default | Unit | What it does |
+|---|---|---|---|---|
+| `.pathDefaults(move, turn, follow)` | `defaultMoveSpeed` | 0.7 | power | Cruise power while traveling between waypoints. |
+| | `defaultTurnSpeed` | 0.4 | power | Power scale for heading correction during paths. |
+| | `followDistanceCm` | 25.4 | cm | Pure-pursuit look-ahead radius (10"). Smaller = tighter corners, more jitter; larger = smoother, cuts corners. |
+| `.arrivalThresholdCm(x)` | `arrivalThresholdCm` | 5.0 | cm | Within this distance of a waypoint, the robot counts as "arrived" and fires `onReach`. |
+| `.orbitThresholdCm(x)` | `orbitThresholdCm` | 25.4 | cm | Distance over which turn power fades to zero as the robot approaches a waypoint, so it glides in without over-rotating. |
+| `.timeoutSecs(x)` | `timeoutSecs` | 5.0 | s | Max seconds a waypoint may take before the follower aborts that leg. |
+| `.maxDriveSpeed(x)` | `maxDriveSpeed` | 1.0 | power | Clamps every `drive(...)` / `driveFieldRelative(...)` input. |
+
+### Waypoint per-waypoint overrides
+
+`Waypoint.at(x, y, robot.config)` copies the defaults, and each waypoint can override them:
+
+```java
+Waypoint.at(60, 0, robot.config)
+        .speed(0.8)                  // override move speed
+        .turnSpeed(0.4)              // override turn speed
+        .followDistance(20.0)        // override look-ahead for this leg
+        .slow(robot.config)          // use slowMoveSpeed / slowTurnSpeed / slowFollowDistanceCm
+        .onReach(() -> robot.openClaw())
+        .build();
+```
+
+The slow-mode presets come from `Config` (not yet exposed on the builder — edit `CrawlerRobot.Config` defaults or use `.speed(...)` directly if you need to change them):
+
+| Config field | Default | Unit | Used by `.slow(config)` |
+|---|---|---|---|
+| `slowMoveSpeed` | 0.3 | power | Cruise power in slow mode |
+| `slowTurnSpeed` | 0.2 | power | Turn power in slow mode |
+| `slowFollowDistanceCm` | 12.7 | cm | Tighter look-ahead in slow mode (5") |
+
+## Where to change values
+
+| Situation | Where |
+|---|---|
+| Final, permanent values | builder chain in `MyRobot.builder()` |
+| Live experiment during tuning | FTC Dashboard → `Crawler Tuner` |
+| Per-path tweaks | `Waypoint` overrides (`.speed()`, `.slow()`, …) |
+
+> 💡 **All field distances are centimeters, all builder odometry sizes are inches.**
+> Use the `UnitConverter` utility (`UnitConverter.inToCm(...)`, `UnitConverter.cmToIn(...)`) to
+> convert when you measure in the other unit — see the [API reference](api-reference.md#unitconverter).
+
+> 💡 **Start conservative.** Change one value at a time and re-test. PID and track width interact — a big jump in one can look like a problem in another.
 
 ---
 

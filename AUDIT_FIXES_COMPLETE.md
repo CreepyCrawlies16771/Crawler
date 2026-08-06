@@ -1,359 +1,140 @@
-# Crawler Library — Audit & Fixes Complete
+# Crawler — Docs Audit & Fixes
 
-## Summary of All Changes
+**Date:** 2026-08-06 · **Scope:** every code example and API claim in Crawler's docs,
+verified line-by-line against the library source and its test suite.
 
-All bugs identified in the audit have been **FIXED**. Below is a comprehensive breakdown of every file modified, with complete corrected contents provided above.
+## How the audit worked
 
----
+1. **Ground truth.** The public API was mapped directly from
+   `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/Crawler/**` — classes,
+   methods, parameter types/order, builder stages, `Config` defaults — plus the JVM
+   unit tests under `TeamCode/src/test/...` (highest-confidence usage) and the
+   running examples in `TeamscodeNotLibrary/`.
+2. **Diff.** Every code block in the user-facing docs (`docs/*.md`), the in-repo
+   Crawler docs, and the root-level project docs was checked against that inventory.
+3. **Rewrite.** Flagged examples were replaced with real API usage; prose claims were
+   corrected; nothing was "simplified" to look nicer.
 
-## FILES FIXED
-
-### 1. **Waypoint.java** ✅
-**Location:** `core/utils/Waypoint.java`
-
-**Bugs Fixed:**
-- ✅ **Missing `heading` field** — Added `public final double heading` with default 0.0
-- ✅ Added `Builder.heading(double)` method for fluent API
-- ✅ Updated copy constructor to include heading
-- ✅ Added comprehensive Javadoc
-
-**Key Changes:**
-```java
-// BEFORE: Missing heading field
-public final double x;
-public final double y;
-public final double moveSpeed;
-// ...
-
-// AFTER: Complete with heading
-public final double x;
-public final double y;
-public final double heading;  // NEW
-public final double moveSpeed;
-// ...
-
-// AFTER: Builder.heading() method added
-public Builder heading(double heading) {
-    this.heading = heading;
-    return this;
-}
-```
+The full verified API inventory now lives in `BUILD_SPECIFICATION.md`; architecture
+and verified examples live in `ARCHITECTURE.md`.
 
 ---
 
-### 2. **CrawlerRobot.java** ✅
-**Location:** `core/Robot/CrawlerRobot.java`
+## Findings: inaccurate examples
 
-**Bugs Fixed:**
-- ✅ **Missing `update()` method** — Added to call `localiser.update()`
-- ✅ **Missing `getPose()` method** — Added to return `localiser.getPose()`
-- ✅ **Missing `getHeading()` method** — Added to return `localiser.getPose().getHeading()`
-- ✅ Added comprehensive Javadoc to class and all public methods
+| # | Location | What was wrong |
+|---|---|---|
+| 1 | `docs/pure-pursuit.md` · "The Waypoint API" | `.heading(0.5)` documented as "optional target heading" and `.slowDown(0.5, 0.5)` as "fade turning… by this factor". **Neither is read by the follower** — `FOFollower.followToWaypoint()` passes `movement.getWorldHeading()` as the preferred angle and never touches `waypoint.heading` / `slowDown*`. Removed from the API block; added an honest note. |
+| 2 | `docs/troubleshooting.md` · "Robot never starts moving" | "Min power test (Step 5, `X` to cycle)". **Triangle** cycles tests within Step 5; X goes back a step. Fixed. |
+| 3 | `docs/ftc-dashboard.md` · "drawRobot in your own OpMode" | Missing `import com.acmerobotics.dashboard.FtcDashboard;` — snippet would not compile. Added. |
+| 4 | `docs/ftc-dashboard.md` · field-view colors | Claimed "Green path / robot square". Reality: `RobotMovement` draws the path polyline in **blue** and the follow point (as a robot square) in **red**; the tuner draws the real robot in **green**. Fixed. |
+| 5 | `docs/first-auto.md` · waypoint note | Claimed `Waypoint.at(x, y, robot.config)` is "required". The overload `Waypoint.at(x, y)` exists (uses default `Config`). Reworded to "use your robot's config… a bare overload exists but falls back to library defaults". |
+| 6 | `FOFollower.java` javadoc ("Usage example") | `Waypoint.at(0, 0).at(24, 0).speed(0.8)…buildAll()` — `.at()` chaining and `.buildAll()` **do not exist**. Replaced with real `Waypoint.at(x, y, robot.config)…build()` usage. |
+| 7 | `Crawler/RobotOrient/Documentaiton/` (9 files) | Wholesale stale: documents an `AutoEninge` package that doesn't exist, a `MovementEngine` with `arc()`, `moveToShoot(Team.BLUE)`, shooter/ball mechanisms, `robot.driveRobotRelative(...)`, `drawCircle(...)`, a 12-step tuner. **Deleted.** |
+| 8 | `Crawler/TUNING_OPMODE_IMPLEMENTATION.md` | Documents the **deleted** `RobotConfig` class (`RobotConfig.Odometry.TRACK_WIDTH`, `RobotConfig.RobotOriented.Kp`, …), `robot.driveRobotRelative(...)` (never existed), field access `robot.leftEncoder`, `Waypoint.at(0,0)` no-config usage, dashboard `0.4.7`, `/sdcard/Crawler` JSON persistence. **Deleted.** |
+| 9 | `ARCHITECTURE.md` | Described `RobotConfig`, `CrawlerAuto<R>`/`CrawlerTeleOp<R>` (never existed), `new Waypoint(0,0,0)` (no public constructor — private, builder-only), a `Pose` class (doesn't exist), `drawCircle` (doesn't exist), a 12-step tuner, `dashboard.sendTelemetry(...)`. **Rewritten** against the current API. |
+| 10 | `BUILD_SPECIFICATION.md` | Spec'd `CrawlerAuto<R>`, `CrawlerTeleOp<R>`, `CrawlerStateMachine`, `arc(distanceInches, HeadingTimeline)`, `driveRobotRelative(Gamepad)`, `RobotConfig`. **Rewritten** as the verified API inventory. |
+| 11 | `AUDIT_FIXES_COMPLETE.md` | Prior record referenced `RobotConfig`, `buildAll()`, `PleaseWorkd.java`, `Robot.java` era code. **Rewritten** as this audit's record. |
 
-**Key Changes:**
-```java
-// ADDED: Three missing public methods
-public void update() {
-    localiser.update();
-}
+**Most common failure mode:** *never-tested, plausible-looking examples* — code that
+followed the "right idea" (build a waypoint, follow a path) with wrong details
+(`buildAll()` chains, `.heading()`/`.slowDown()` behavior claims, wrong button
+mappings). Second most common: **docs describing functionality removed from the
+library** (`RobotConfig`, `arc()`, `driveRobotRelative`, the old 12-step tuner).
 
-public Pose2d getPose() {
-    return localiser.getPose();
-}
+## Functionality that no longer exists (removed, not corrected)
 
-public double getHeading() {
-    return localiser.getPose().getHeading();
-}
+- `RobotConfig` global-statics config class (and its `@Config` inner classes)
+- `CrawlerAuto<R>` / `CrawlerTeleOp<R>` base classes, `CrawlerStateMachine`
+- `Waypoint` chained `.at().at()…buildAll()` API; `Waypoint` public constructor
+- `robot.driveRobotRelative(...)`, `arc(...)`, `HeadingTimeline`-driven `arc()`
+- `Pose`, `drawCircle(...)`, the "12-step" `CrawlerTuner`, `/sdcard/Crawler` persistence
+- `Robot.java`, `PleaseWorkd.java`
 
-// ADDED: Comprehensive Javadoc to drive methods
-/**
- * Applies holonomic movement in the field's fixed frame, not the robot's frame.
- * ...
- */
-public void driveFieldRelative(double forward, double strafe, double rotate) { ... }
-```
+## Still-present but unwired / deprecated (flagged, not guessed)
 
----
+- `Waypoint.heading` / `Waypoint.slowDown(...)` — stored, never consumed by `FOFollower`
+- `RobotOrient/HeadingTimeline.java` / `AnimationBuilder.java` / `IndexerRotation.java`
+  — real code + tests, but no engine uses them
+- `core/Robot/driveTrain.java` — unused; casts `MotorEx` → `DcMotor`
+- `RobotOrient/Tuner.java` — `@Deprecated`, throws
+- `RobotMovement.follow(List, double)` — builds a Dashboard `TelemetryPacket`
+  (path + follow point) but never sends it, so the field view stays blank during
+  paths; only the tuner's tests (`TuningDashboard.drawRobot`) actually draw live
 
-### 3. **RobotMovement.java** ✅
-**Location:** `FieldOrient/RobotMovement.java`
+## Real functionality with no doc coverage
 
-**Bugs Fixed:**
-- ✅ **CRITICAL: `goToPosition()` never calls `robot.driveFieldRelative()`** — The method computed motor powers but dropped them, causing zero movement. Added the missing call at the end.
+- **`AprilTagWebcam` / `Vision.Rotation`** — working vision wrapper, undocumented in
+  `docs/` (its exact API is now recorded in `BUILD_SPECIFICATION.md` §7)
+- **`RobotMovement` low-level API** — `getFollowPointPath(...)`, path extension,
+  dynamic look-ahead; only the follower is documented user-facing
+- **`DashboardFieldViewUtils.drawPoint`** and **`FieldColor`** details
+- **`annotations.Experimental`** marker + processor
+- **`HeadingTimeline` keyframe interpolation** (tested but not wired anywhere)
+- **`RobotMovement.follow(List, double)` field-view drawing** — the drawing code
+  exists but the packet is never sent
 
-**Key Changes:**
-```java
-// BEFORE: Power calculated but never applied
-public void goToPosition(double x, double y, double moveSpeed, double preferredAngle, double turnSpeed) {
-    // ... compute movementXPower, movementYPower, turnPower ...
-    // MISSING: robot.driveFieldRelative(...);
-}
+## Fixes applied in this audit
 
-// AFTER: Power correctly applied
-public void goToPosition(double x, double y, double moveSpeed, double preferredAngle, double turnSpeed) {
-    // ... compute movementXPower, movementYPower, turnPower ...
-    
-    // FIX: CRITICAL — actually apply the computed powers to the robot!
-    robot.driveFieldRelative(movementYPower, movementXPower, turnPower);
-}
-```
+- `docs/pure-pursuit.md`, `docs/troubleshooting.md`, `docs/ftc-dashboard.md`,
+  `docs/first-auto.md` — corrected examples/prose
+- `Crawler/FieldOrient/FOFollower.java` — corrected javadoc usage example
+- Deleted `Crawler/RobotOrient/Documentaiton/` and `Crawler/TUNING_OPMODE_IMPLEMENTATION.md`
+- Rewrote `ARCHITECTURE.md`, `BUILD_SPECIFICATION.md`, `AUDIT_FIXES_COMPLETE.md`
 
----
+## What survived the audit unmodified
 
-### 4. **ROMovementEngine.java** ✅
-**Location:** `RobotOrient/ROMovementEngine.java`
-
-**Bugs Fixed:**
-- ✅ **Removed broken `Robot` class dependency** — Removed import and instantiation that caused NPE
-- ✅ **Fixed hardcoded PID values** — Updated `turnPID()` to use `RobotConfig.RobotOriented.STEER_P` instead of `0.03`, and `RobotConfig.RobotOriented.MIN_POWER` instead of `0.15`
-- ✅ **Fixed encoder reset inconsistency in `arc()` method** — Changed from `resetOdometry()` to start-offset approach like `drivePID()`
-- ✅ **Fixed encoder reset inconsistency in `strafePID()` method** — Changed to use start-offset approach
-
-**Key Changes:**
-```java
-// BEFORE: Removed imports and fields
-import org.firstinspires.ftc.teamcode.Crawler.core.Robot.Robot;
-public Robot robot;
-
-// AFTER: Removed broken dependency
-
-// BEFORE: Hardcoded turnPID values
-double turnPower = error * 0.03;  // Hardcoded P value
-if (Math.abs(turnPower) < 0.15) turnPower = Math.signum(turnPower) * 0.15;  // Hardcoded min power
-
-// AFTER: Using RobotConfig values
-double turnPower = error * RobotConfig.RobotOriented.STEER_P;
-if (Math.abs(turnPower) < RobotConfig.RobotOriented.MIN_POWER) 
-    turnPower = Math.signum(turnPower) * RobotConfig.RobotOriented.MIN_POWER;
-
-// BEFORE: Inconsistent encoder reset in arc()
-resetOdometry();
-double currentPos = (leftOdo.getCurrentPosition() + rightOdo.getCurrentPosition()) / 2.0;
-
-// AFTER: Consistent start-offset approach
-double startPos = (leftOdo.getCurrentPosition() + rightOdo.getCurrentPosition()) / 2.0;
-double rawCurrentPos = (leftOdo.getCurrentPosition() + rightOdo.getCurrentPosition()) / 2.0;
-double currentPos = rawCurrentPos - startPos;
-```
+The `docs/` site was otherwise accurate: the `CrawlerRobot.Builder` chain (all builder
+methods and their `Config` defaults), the `FOFollower`/`Waypoint` examples,
+`RobotOrientedDrive`/`ROMovementEngine` patterns, the tuner's 7 steps and gamepad map,
+the Dashboard config panel, the installation Gradle deps, and the `npm` scripts all
+verified against source.
 
 ---
 
-### 5. **CrawlerTuner.java** ✅
-**Location:** `Tuning/CrawlerTuner.java`
+# Round 2 — Config-in-the-builder rework
 
-**Bugs Fixed:**
-- ✅ **Wrong Pose2d import** — Changed from `org.firstinspires.ftc.teamcode.Crawler.core.utils.Pose2d` to `com.arcrobotics.ftclib.geometry.Pose2d`
-- ✅ **Removed non-Android imports** — Removed `java.nio.file.Files` and `java.nio.file.Paths` (not available on Android)
-- ✅ **Removed unavailable JSONObject import** — Removed `org.json.JSONObject`
-- ✅ **Fixed `buildAll()` method calls** — Changed all four instances from `Waypoint.at().at().buildAll()` to proper `List<Waypoint>` construction using `.build()`
+A follow-up review of the user-facing pattern found that the docs presented the tuned
+config as a separate `tunedConfig()` function returning a `Config`, while the real
+library carries all values **in the builder chain**. The shipped example and docs were
+reworked so the config lives where the library actually keeps it.
 
-**Key Changes:**
-```java
-// BEFORE: Wrong import and method calls
-import org.firstinspires.ftc.teamcode.Crawler.core.utils.Pose2d;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import org.json.JSONObject;
+## Changes
 
-List<Waypoint> path = Waypoint.at(0, 0)
-        .at(48, 0)
-        .at(48, 48)
-        .buildAll();
+| Area | Change |
+|---|---|
+| `MyRobot.java` | Rewritten as an **all-in-one** robot: device-name constants, IMU orientation, localizer, and every tuned number live in a single `builder(HardwareMap)` chain. `tunedConfig()` removed. Added `buildTuned(hwMap, config)` for the Crawler Tuner to rebuild with live values. |
+| `RobotHardware.java` | **Deleted** — its constants were folded into `MyRobot.java`. Nothing else to keep in sync. |
+| `MyRobotSnippet.java` | Prints **builder lines** (`.setTrackWidth(13.0)`, `.drivePid(...)`, …) to paste into `MyRobot.builder()`, not `c.field = …` assignments for a `tunedConfig()` function. |
+| `CrawlerTuner.java` | Factory is now `config -> MyRobot.buildTuned(hardwareMap, config)`. Javadoc + telemetry text updated. |
+| `CrawlerError.java` | CRWL-104 and CRWL-107 fixes now point at `MyRobot.java` / `MyRobot.builder()`. |
+| `CrawlerSystemTest.java` | CONFIG_REVIEW help text updated. |
+| `CrawlerErrorsTest.java` | Frame example updated to `builder`. |
+| Docs site | `setup.md`, `example.md`, `configuration.md`, `index.md`, `tuning.md`, `tuning-guide.md`, `tuning-overview.md`, `ftc-dashboard.md`, `troubleshooting.md`, `installation.md`, `USER_GUIDE.md`, `errors.md` all updated to the one-file `MyRobot.builder()` pattern with the builder-line snippet. |
+| `docs/api-reference.md` | **New** — full public-API reference covering every feature (builder stages, all `Config` fields, PID loop internals, `DebugSink`, localizers, followers, tuner, Dashboard, Vision, utils, errors). Wired into the site nav. |
+| `UnitConverter` | **New** `core/utils` class (in↔cm↔m↔mm↔ft) + `UnitConverterTest` — the library's field geometry is cm while builder odometry sizes are inches. |
+| Run scripts | `start-docs.sh` (Linux) verified; `start-docs.bat` (Windows) **added** for the docs dev server. |
+| Root docs | `ARCHITECTURE.md`, `BUILD_SPECIFICATION.md`, `AUDIT_FIXES_COMPLETE.md` updated to the new pattern. |
 
-// AFTER: Correct import and method calls
-import com.arcrobotics.ftclib.geometry.Pose2d;
+## Why
 
-List<Waypoint> path = new ArrayList<>();
-path.add(Waypoint.at(0, 0).build());
-path.add(Waypoint.at(48, 0).build());
-path.add(Waypoint.at(48, 48).build());
-```
+- The docs' `MyRobot` used a separate `tunedConfig()` function that the current library
+doesn't use — the config is part of the builder, so the example code was wrong.
+- The tuner printed `c.field = …` assignments; it now prints the builder lines the
+team actually pastes.
+- `RobotHardware.java` was redundant with `MyRobot` and was removed so there is exactly
+one place to edit.
+- The PID loops were under-documented; `api-reference.md` now explains `drivePID` /
+`strafePID` / `turnPID` with their real gain semantics, deadband, and `DebugSink`.
 
----
+## Verification
 
-### 6. **Robot.java** ✅
-**Location:** `core/Robot/Robot.java`
+- Library JVM tests: `./gradlew :TeamCode:testDebugUnitTest` (includes new
+`UnitConverterTest`)
+- Docs site rebuild: `npm run build`
+- Dev server: `./start-docs.sh` (Linux) / `start-docs.bat` (Windows)
 
-**Decision: DELETED**
-- ✅ This legacy wrapper class was **broken and unused**
-- ✅ It attempted to initialize `userRobot` without instantiating it, causing NPE on `frontLeft` access
-- ✅ The cast `(DcMotorEx) userRobot.frontLeft` was also wrong (MotorEx is not DcMotorEx)
-- ✅ Deleted entirely after removing all dependencies in `ROMovementEngine`
+## Verification
 
----
-
-### 7. **TwoWheelLocaliser.java** ✅
-**Location:** `core/Localizers/TwoWheelLocaliser.java`
-
-**Bugs Fixed:**
-- ✅ **Unclear naming/documentation** — Added comprehensive Javadoc explaining that this supports both differential drivetrain and two-wheel dead wheel odometry
-- ✅ **Added clarity on parameter meanings** — Documented what `trackWidth` represents for each odometry configuration
-- ✅ **Added cross-references** to other localiser options
-
-**Key Changes:**
-```java
-// BEFORE: No documentation
-public class TwoWheelLocaliser implements CrawlerLocaliser { ... }
-
-// AFTER: Full documentation
-/**
- * Localiser implementation for two-wheel differential odometry.
- *
- * <p>This localiser is suitable for either:</p>
- * <ul>
- *   <li><b>Differential drivetrain:</b> Left and right drive encoders directly measure
- *       the distance traveled by each side...</li>
- *   <li><b>Two dead wheels:</b> Two tracking wheels mounted left-right (parallel to the
- *       direction of travel)...</li>
- * </ul>
- */
-```
-
----
-
-### 8. **CrawlerMath.java** ✅
-**Location:** `core/utils/CrawlerMath.java`
-
-**Bugs Fixed:**
-- ✅ **Unit confusion in `wrapAngle()`** — Added comprehensive Javadoc clarifying it expects **degrees** (not radians)
-- ✅ **Missing `wrapRadians()` method** — Added radian equivalent for use with localiser heading values
-- ✅ Added full class documentation and method documentation
-
-**Key Changes:**
-```java
-// BEFORE: No documentation
-public static double wrapAngle(double angle) {
-    while (angle < -180) angle += 360;
-    while (angle > 180) angle -= 360;
-    return angle;
-}
-
-// AFTER: Clear documentation + new method
-/**
- * Wraps an angle in degrees to the range [-180, 180].
- * <p>Used for heading error calculations where we want the shortest rotation path.</p>
- */
-public static double wrapAngle(double degrees) { ... }
-
-/**
- * Wraps an angle in radians to the range [-π, π].
- * <p>This is the radian equivalent... Used when working with heading angles in radians...</p>
- */
-public static double wrapRadians(double radians) {
-    while (radians < -Math.PI) radians += 2 * Math.PI;
-    while (radians > Math.PI) radians -= 2 * Math.PI;
-    return radians;
-}
-```
-
----
-
-### 9. **PleaseWorkd.java** ✅
-**Location:** `Crawler/PleaseWorkd.java`
-
-**Bugs Fixed:**
-- ✅ **Passed null HardwareMap** — File was passing `null` to CrawlerRobot.Builder, causing NPE on any hardware access
-- ✅ **Deprecated the file** — Converted to a deprecated stub with warning comments directing teams to use `MyRobot` or example OpModes instead
-
-**Key Changes:**
-```java
-// BEFORE: Broken test code
-public class PleaseWorkd {
-    CrawlerRobot robot = new CrawlerRobot.Builder(null)  // NPE!
-            .frontLeft("fl")
-            .frontRight("fr")
-            // ...
-}
-
-// AFTER: Deprecated with guidance
-@Deprecated
-public class PleaseWorkd {
-    // This class is deprecated and should not be used.
-    // Use MyRobot or the example OpModes instead.
-}
-```
-
----
-
-### 10. **ExampleTeleOp.java** ✅ (NEW FILE)
-**Location:** `Crawler/ExampleTeleOp.java`
-
-**Created New:**
-- ✅ Complete example TeleOp using `CrawlerRobot` and `MyRobot`
-- ✅ Driver 1: Field-relative driving (left stick forward/strafe, right stick rotate)
-- ✅ Driver 1: Claw control (A = open, B = close)
-- ✅ Driver 2: Lift control (triggers up/down)
-- ✅ Live telemetry showing pose (X, Y, heading) every cycle
-- ✅ Full Javadoc documentation
-
----
-
-### 11. **ExampleAuto.java** ✅ (NEW FILE)
-**Location:** `Crawler/ExampleAuto.java`
-
-**Created New:**
-- ✅ Complete example Autonomous using `FOFollower` and `Waypoint`
-- ✅ Path: (0,0) → (60,0) [open claw] → (60,60) [score basket] → (0,0)
-- ✅ Uses `.onReach()` callbacks to trigger actions at waypoints
-- ✅ Demonstrates lambda for `OpModeProxy` inline: `() -> opModeIsActive()`
-- ✅ Includes try-catch for `InterruptedException`
-- ✅ Full Javadoc documentation with step-by-step path explanation
-
----
-
-## VERIFICATION CHECKLIST
-
-| Item | Status | Notes |
-|------|--------|-------|
-| Waypoint.heading field added | ✅ | Initialized to 0.0; builder method added |
-| CrawlerRobot.update() added | ✅ | Calls localiser.update() |
-| CrawlerRobot.getPose() added | ✅ | Returns localiser.getPose() |
-| CrawlerRobot.getHeading() added | ✅ | Returns localiser.getPose().getHeading() |
-| RobotMovement.goToPosition() calls drive | ✅ | robot.driveFieldRelative() now called |
-| ROMovementEngine.Robot removed | ✅ | Import and field deleted, NPE eliminated |
-| ROMovementEngine.turnPID hardcodes fixed | ✅ | Uses RobotConfig.RobotOriented values |
-| ROMovementEngine.arc() fixed | ✅ | Uses start-offset approach (consistent) |
-| ROMovementEngine.strafePID() fixed | ✅ | Uses start-offset approach (consistent) |
-| CrawlerTuner.Pose2d import fixed | ✅ | Now uses com.arcrobotics.ftclib.geometry.Pose2d |
-| CrawlerTuner.buildAll() calls fixed | ✅ | All 4 calls rewritten to use ArrayList |
-| CrawlerTuner imports fixed | ✅ | Removed java.nio.file.* and org.json.* |
-| Robot.java deleted | ✅ | Broken legacy class removed |
-| TwoWheelLocaliser documented | ✅ | Full Javadoc with differential/deadwheel explanation |
-| CrawlerMath.wrapRadians() added | ✅ | New method for radian angle wrapping |
-| CrawlerMath.wrapAngle() documented | ✅ | Clear Javadoc specifying degrees |
-| PleaseWorkd.java deprecated | ✅ | Null HardwareMap issue resolved |
-| ExampleTeleOp.java created | ✅ | Full-featured example with field-relative driving |
-| ExampleAuto.java created | ✅ | Full-featured example with pure pursuit pathfinding |
-| All public methods have Javadoc | ✅ | Comprehensive documentation added |
-
----
-
-## BUILD & DEPLOYMENT
-
-The library is now ready for compilation and deployment:
-
-1. **No compile errors** — All broken methods fixed, all imports corrected
-2. **No runtime NPEs** — Null HardwareMap issue removed, Robot class deleted
-3. **Complete examples** — Two example OpModes demonstrate correct usage patterns
-4. **Documented** — All public APIs have full Javadoc
-5. **Configurable** — All PID values now reference `RobotConfig` instead of hardcoding
-
----
-
-## NOTES ON DESIGN DECISIONS
-
-1. **Robot.java Deletion**: This file was a legacy wrapper that conflicted with `CrawlerRobot`. Deleting it entirely (not trying to "fix" it) was the correct choice, as `CrawlerRobot` is the proper base class.
-
-2. **RobotMovement.goToPosition() Critical Fix**: The fact that this method existed but did nothing is a severe bug. The pure pursuit follower was computing lookahead points but never applying power to the drivetrain. This was a one-line fix but it's the difference between the robot standing still and actually moving.
-
-3. **Waypoint.heading Addition**: This field was referenced in `FOFollower.followToWaypoint()` (line 137) but never defined in `Waypoint`. The compiler would fail. Adding it with a default of 0.0 radians is safe and maintains backward compatibility.
-
-4. **CrawlerTuner File Size**: This tuning tool is complex and has multiple compile errors. Rather than rewrite the entire file, I fixed the specific issues (imports, method calls). The file should now compile successfully.
-
-5. **Example OpModes**: Both examples follow Android's standard pattern (LinearOpMode). They demonstrate:
-   - Proper robot construction with the builder
-   - Field-relative control (TeleOp)
-   - Pure pursuit autonomous (Auto)
-   - Proper callback usage
-   - Complete telemetry integration
-
+- Library JVM tests: `./gradlew :TeamCode:testDebugUnitTest`
+- Docs site rebuild: `npm run build` (regenerates `docs-html/`)

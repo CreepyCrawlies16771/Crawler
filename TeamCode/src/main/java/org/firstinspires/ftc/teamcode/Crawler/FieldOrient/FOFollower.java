@@ -4,6 +4,9 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.Crawler.core.Robot.CrawlerRobot;
+import org.firstinspires.ftc.teamcode.Crawler.core.errors.CrawlerError;
+import org.firstinspires.ftc.teamcode.Crawler.core.errors.CrawlerErrors;
+import org.firstinspires.ftc.teamcode.Crawler.core.errors.CrawlerPreflight;
 import org.firstinspires.ftc.teamcode.Crawler.core.utils.Waypoint;
 
 import java.util.Arrays;
@@ -19,12 +22,11 @@ import java.util.List;
  *
  * <p>Usage example:</p>
  * <pre>{@code
- * FOFollower follower = new FOFollower(robot, opMode.telemetry, opMode);
+ * FOFollower follower = new FOFollower(robot, telemetry, this::opModeIsActive);
  * follower.follow(
- *     Waypoint.at(0, 0)
- *         .at(24, 0).speed(0.8).onReach(() -> robot.openClaw())
- *         .at(24, 24).slow()
- *         .buildAll()
+ *     Waypoint.at(0, 0, robot.config).build(),
+ *     Waypoint.at(24, 0, robot.config).speed(0.8).onReach(() -> robot.openClaw()).build(),
+ *     Waypoint.at(24, 24, robot.config).slow(robot.config).build()
  * );
  * }</pre>
  *
@@ -36,6 +38,9 @@ public class FOFollower {
     private final RobotMovement movement;
     private final Telemetry telemetry;
     private final OpModeProxy opModeProxy;
+
+    /** Guards against overlapping {@code follow()} calls (CRWL-401). */
+    private boolean following;
 
 
     /**
@@ -83,35 +88,35 @@ public class FOFollower {
      * @throws InterruptedException if the OpMode is stopped during execution
      */
     public void follow(List<Waypoint> waypoints) throws InterruptedException {
-        // Validate waypoint list
-        if (waypoints == null || waypoints.isEmpty()) {
-            telemetry.addLine("[Crawler] WARNING: follow() called with empty waypoint list. Ignoring.");
-            telemetry.update();
-            return;
+        if (following) {
+            CrawlerErrors.throwError(CrawlerError.RUNTIME_OVERLAPPING_FOLLOW);
         }
+        following = true;
+        try {
+            // Early error detection: every config, pose, localizer, IMU and path
+            // check runs here, before the first motor spins. All problems are
+            // posted to telemetry, then the first one is thrown (CRWL-101..306).
+            CrawlerPreflight.run(robot, waypoints, telemetry);
 
-        if (waypoints.size() < 2) {
-            telemetry.addLine("[Crawler] WARNING: follow() needs at least 2 waypoints.");
-            telemetry.update();
-            return;
-        }
+            for (int i = 0; i < waypoints.size(); i++) {
+                if (!opModeProxy.isActive()) {
+                    throw new InterruptedException("OpMode stopped");
+                }
 
-        for (int i = 0; i < waypoints.size(); i++) {
-            if (!opModeProxy.isActive()) {
-                throw new InterruptedException("OpMode stopped");
+                Waypoint target = waypoints.get(i);
+                followToWaypoint(target);
+
+                // Execute onReach callback if present
+                if (target.onReach != null) {
+                    target.onReach.run();
+                }
             }
 
-            Waypoint target = waypoints.get(i);
-            followToWaypoint(target);
-
-            // Execute onReach callback if present
-            if (target.onReach != null) {
-                target.onReach.run();
-            }
+            // Ensure motors are stopped after path completion
+            robot.stop();
+        } finally {
+            following = false;
         }
-
-        // Ensure motors are stopped after path completion
-        robot.driveTrain.stop();
     }
 
     /**
@@ -141,15 +146,14 @@ public class FOFollower {
         ElapsedTime waypointTimer = new ElapsedTime();
         double timeout = robot.config.timeoutSecs;
 
-        while (opModeProxy.isActive()) {
-            // Timeout safety check
-            if (waypointTimer.seconds() > timeout) {
-                telemetry.addData("WARNING", "Waypoint timeout: %.1f seconds", waypointTimer.seconds());
-                telemetry.update();
-                robot.driveTrain.stop();  // Stop motors on timeout
-                break;
-            }
+        // Stall detector for CRWL-202: if the robot is commanded to move but the
+        // localizer reports no motion for a few seconds, the encoders aren't
+        // seeing movement (wrong port / unplugged / reversed setup).
+        ElapsedTime stallTimer = new ElapsedTime();
+        double lastX = robot.getPose().getX();
+        double lastY = robot.getPose().getY();
 
+        while (opModeProxy.isActive()) {
             // Update robot position from localiser
             robot.localiser.update();
 
@@ -164,14 +168,35 @@ public class FOFollower {
                 break;
             }
 
+            // Stall detection (only while we still have distance to cover)
+            double x = robot.localiser.getPose().getX();
+            double y = robot.localiser.getPose().getY();
+            if (Math.hypot(x - lastX, y - lastY) > 0.2) {
+                stallTimer.reset();
+            } else if (stallTimer.seconds() > 3.0) {
+                robot.stop();
+                CrawlerErrors.throwError(CrawlerError.ODO_ENCODERS_NOT_MOVING);
+            }
+            lastX = x;
+            lastY = y;
+
             // Compute and execute movement using pure pursuit
-            // Call goToPosition directly instead of wrapping in follow()
             movement.goToPosition(
                     waypoint.x, waypoint.y,
                     waypoint.moveSpeed,
                     movement.getWorldHeading(),
                     waypoint.turnSpeed
             );
+
+            // Timeout safety check
+            if (waypointTimer.seconds() > timeout) {
+                robot.stop();  // Stop motors on timeout
+                CrawlerErrors.postToTelemetry(
+                        telemetry,
+                        CrawlerError.RUNTIME_LEG_TIMEOUT,
+                        waypointTimer.seconds());
+                break;
+            }
 
             // Telemetry
             telemetry.addData("Target (cm)", "%.1f, %.1f", waypoint.x, waypoint.y);
