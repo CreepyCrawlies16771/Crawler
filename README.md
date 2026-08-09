@@ -29,14 +29,6 @@ npm run build          # markdown (docs/) + static assets (site/) -> static site
 
 `docs-html/` is generated and git-ignored — never commit it.
 
-## Publish to GitHub Pages
-
-The repository includes a GitHub Actions workflow (`.github/workflows/pages.yml`)
-that rebuilds the site and deploys it automatically:
-
-1. **One-time setup:** go to *Settings → Pages* and set **Source** to **GitHub Actions**.
-2. Push to the `site` branch — the workflow builds `docs-html/` and deploys it.
-3. (Or deploy manually: *Actions → Deploy docs to GitHub Pages → Run workflow*.)
 
 The live site is published at:
 
