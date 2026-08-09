@@ -5,31 +5,33 @@ import com.arcrobotics.ftclib.hardware.motors.MotorEx;
 import com.arcrobotics.ftclib.kinematics.HolonomicOdometry;
 
 import org.firstinspires.ftc.teamcode.Crawler.core.Robot.CrawlerRobot;
+import org.firstinspires.ftc.teamcode.Crawler.core.utils.UnitConverter;
 
 public class ThreeDeadWheelLocaliser implements CrawlerLocaliser {
 
     private final HolonomicOdometry odometry;
 
     public ThreeDeadWheelLocaliser(MotorEx leftEncoder, MotorEx rightEncoder, MotorEx centerEncoder,
-                                   boolean invertLeft, boolean invertRight, boolean invertCenter,
                                    CrawlerRobot.Config config) {
 
-        double distancePerPulse = Math.PI * config.wheelDiameterIn / config.ticksPerRev;
+        // setDistancePerPulse expects DISTANCE PER TICK, so take the reciprocal of
+        // ticksPerCm(). Units are centimeters — the framework's field convention — so
+        // the odometry pose comes out in cm like every other localizer.
+        double cmPerTick = 1.0 / config.ticksPerCm();
 
-        leftEncoder.setDistancePerPulse(distancePerPulse);
-        rightEncoder.setDistancePerPulse(distancePerPulse);
-        centerEncoder.setDistancePerPulse(distancePerPulse);
+        leftEncoder.setDistancePerPulse(cmPerTick);
+        rightEncoder.setDistancePerPulse(cmPerTick);
+        centerEncoder.setDistancePerPulse(cmPerTick);
 
-        if (invertLeft)   leftEncoder.setInverted(true);
-        if (invertRight)  rightEncoder.setInverted(true);
-        if (invertCenter) centerEncoder.setInverted(true);
-
+        // Encoder direction is owned by the MotorEx instances: CrawlerRobot applies the
+        // builder's invertLeftEncoder()/... flags once, before the localizer is built.
+        // Inverting here as well would cancel it out.
         odometry = new HolonomicOdometry(
                 leftEncoder::getDistance,
                 rightEncoder::getDistance,
                 centerEncoder::getDistance,
-                config.trackWidthIn,
-                config.centerWheelOffsetIn
+                UnitConverter.inToCm(config.trackWidthIn),
+                UnitConverter.inToCm(config.centerWheelOffsetIn)
         );
     }
 

@@ -5,25 +5,27 @@ import com.arcrobotics.ftclib.hardware.motors.MotorEx;
 import com.arcrobotics.ftclib.kinematics.DifferentialOdometry;
 
 import org.firstinspires.ftc.teamcode.Crawler.core.Robot.CrawlerRobot;
+import org.firstinspires.ftc.teamcode.Crawler.core.utils.UnitConverter;
 
 public class TwoWheelLocaliser implements CrawlerLocaliser {
 
     private final DifferentialOdometry odometry;
 
     public TwoWheelLocaliser(MotorEx left, MotorEx right,
-                             boolean invertLeft, boolean invertRight,
                              CrawlerRobot.Config config) {
 
-        left.setDistancePerPulse(config.ticksPerCm());
-        right.setDistancePerPulse(config.ticksPerCm());
+        // setDistancePerPulse expects DISTANCE PER TICK (cm per tick here), so the
+        // reciprocal of ticksPerCm() is used; distances are in centimeters.
+        double cmPerTick = 1.0 / config.ticksPerCm();
+        left.setDistancePerPulse(cmPerTick);
+        right.setDistancePerPulse(cmPerTick);
 
-        if (invertLeft)  left.setInverted(true);
-        if (invertRight) right.setInverted(true);
-
+        // Encoder direction is owned by the MotorEx instances (builder flags applied in
+        // CrawlerRobot) — never inverted here as well.
         odometry = new DifferentialOdometry(
                 left::getDistance,
                 right::getDistance,
-                config.trackWidthIn
+                UnitConverter.inToCm(config.trackWidthIn)
         );
     }
 

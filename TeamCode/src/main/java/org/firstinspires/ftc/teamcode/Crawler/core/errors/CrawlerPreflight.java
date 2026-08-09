@@ -160,7 +160,7 @@ public final class CrawlerPreflight {
             errors.add(CrawlerErrors.exception(CrawlerError.PATH_TOO_SHORT, waypoints.size()));
             return;
         }
-        for (int i = 0; i < waypoints.size(); i++) {
+       for (int i = 0; i < waypoints.size(); i++) {
             Waypoint w = waypoints.get(i);
             if (w == null) {
                 errors.add(CrawlerErrors.exception(CrawlerError.PATH_NULL_WAYPOINT, i));
