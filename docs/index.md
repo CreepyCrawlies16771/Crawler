@@ -18,7 +18,7 @@ Road Runner and Pedro Pathing are powerful, but they take days to learn. Crawler
 | **Pure pursuit paths** | `FOFollower` + `Waypoint` drive smooth, curved paths between field coordinates. |
 | **Robot-relative moves** | `drivePID`, `strafePID`, `turnPID` for precise final alignments. |
 | **Guided tuner** | One OpMode walks you through odometry, PID, and path tuning — with live editing in **FTC Dashboard**. |
-| **Any localizer** | Three dead wheels, two dead wheels, GoBILDA Pinpoint, motor encoders, or none. |
+| **Any localizer** | Three dead wheels, two dead wheels, GoBILDA Pinpoint, motor encoders. |
 
 ## The whole idea in 20 lines
 
@@ -47,7 +47,6 @@ public class RedAuto extends LinearOpMode {
 }
 ```
 
-No PID tuning required to *see* this work — but tuning makes it accurate. The [guided tuner](tuning.md) walks you through everything.
 
 ## Tune once, drive forever
 
@@ -95,7 +94,7 @@ Every robot is different: different wheel diameters, different track widths, dif
 When you finish, the tuner prints the exact tuned values as **builder lines** to paste into `MyRobot.builder()` (`MyRobot` is just the example name):
 
 ```java
-// Paste into MyRobot.builder(), replacing the tuned values below:
+// Example generated output from the tuner. Paste in your robot class:
 .setTrackWidth(13.0000)
 .setCenterWheelOffset(3.5000)
 .wheelDiameter(1.3780)
