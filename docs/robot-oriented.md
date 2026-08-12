@@ -24,7 +24,7 @@ All three are blocking (they finish before the next line runs), use `config.time
 `ROMovementEngine` wires up `MyRobot`, waits for start, resets the pose, and calls your `runPath()`:
 
 ```java
-package org.firstinspires.ftc.teamcode.TeamscodeNotLibrary;
+package org.firstinspires.ftc.teamcode.Teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.HardwareMap;

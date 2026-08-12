@@ -15,30 +15,34 @@ The **Crawler Tuner** fixes that. It walks you through seven short tests, and ev
 
 ## Getting started
 
-1. Nothing to sync — the tuner rebuilds `MyRobot.builder()` with the live values
+1. Nothing to sync — the tuner rebuilds your registered robot with the live values
 2. Deploy the app
 3. Select **Crawler Tuner** (a TeleOp) on the Driver Station
 4. Open **FTC Dashboard** in a browser: `http://192.168.43.1:8080/dash`
 5. Press **Play**
 
-You'll see a `Crawler Tuner` config panel in the Dashboard — every value the tuner manages lives there:
+You'll see a `Crawler Tuner` config panel in the Dashboard — every value the tuner manages lives there. The values are **seeded from your robot's builder** when the tuner starts, so you begin tuning from the numbers already in your robot class (there are no library presets):
 
 ```
 Crawler Tuner
-├── trackWidthIn          13.0
-├── centerWheelOffsetIn    3.5
-├── wheelDiameterIn      1.37795
-├── ticksPerRev           2000
+├── trackWidthIn            (from .setTrackWidth)
+├── centerWheelOffsetIn     (from .setCenterWheelOffset)
+├── wheelDiameterIn         (from .wheelDiameter)
+├── ticksPerRev             (from .ticksPerRev)
 ├── driveKp / driveKi / driveKd
 ├── strafeKp / strafeKi / strafeKd
 ├── steerP / steerI / steerD
-├── minPower              0.15
+├── minPower                (from .minPower)
 ├── moveSpeed / turnSpeed / followDistanceCm
 ├── arrivalThresholdCm / orbitThresholdCm
-├── timeoutSecs / maxDriveSpeed
+├── timeoutSecs / maxDriveSpeed / turnReferenceRadians
+├── slowMoveSpeed / slowTurnSpeed / slowFollowDistanceCm    (only if you use slow-down)
+├── slowDownTurnRadians / slowDownTurnAmount                (only if you use slow-down)
 ```
 
-> 💡 **The workflow:** type values in the Dashboard (or nudge them with the gamepad) → press **RB** to run the test → watch the result on the Driver Station and the Dashboard telemetry → repeat until it passes → **Square** to print the final builder code for `MyRobot.java`.
+> 💡 **The workflow:** type values in the Dashboard (or nudge them with the gamepad) → press **RB** to run the test → watch the result on the Driver Station and the Dashboard telemetry → repeat until it passes → **Square** to print the final builder code for your robot's `builder()`.
+
+> ⚠️ **Still at 0?** PID **I/D** terms and the `slow*` values are legitimately 0. But if a **P gain** (`driveKp`, `strafeKp`, `steerP`) is 0, the tuner warns you on the Driver Station — the robot won't move under PID control until you tune it (Step 5).
 
 ## The 7 steps
 
@@ -50,7 +54,7 @@ Crawler Tuner
 | 4 | **Center offset** | D-pad to adjust; RB strafes 1 m | Heading drift under 2° while strafing |
 | 5 | **PID** | Triangle cycles Drive / Strafe / Turn / Min power; D-pad L/R picks P, I, or D; U/D adjusts; RB runs | Smooth stop at target with minimal overshoot |
 | 6 | **Auto path** | D-pad adjusts move speed; RB runs a 1 m square | Robot returns near its start |
-| 7 | **Finish** | Press Square | Values printed as builder lines for `MyRobot.builder()` |
+| 7 | **Finish** | Press Square | Values printed as builder lines for your robot's `builder()` |
 
 ## Gamepad controls
 
@@ -62,7 +66,7 @@ Crawler Tuner
 | **Triangle** | In the PID step: switch test (Drive → Strafe → Turn → Min power) |
 | **X** | Go back a step |
 | **Circle** | Accept this step and move to the next |
-| **Square** | Toggle the `MyRobot.builder()` snippet (also shown at Step 7) |
+| **Square** | Toggle the builder snippet for your robot (also shown at Step 7) |
 
 Everything you can do with the gamepad you can also do by typing into the Dashboard — the two stay in sync automatically.
 
@@ -80,21 +84,21 @@ The tuner streams everywhere at once:
 
 ```
 Crawler Tuner | Step 3/7: Track width
-Circle: next  X: back  Square: MyRobot builder code
+Circle: next  X: back  Square: builder code
 Edit values live in FTC Dashboard -> Crawler Tuner
 D-pad U/D: track width  RB: spin test  (rebuilds robot)
 trackWidth in: 13.0
-Track width OK — paste into MyRobot
+Track width OK — paste into your robot
 ```
 
 ## After tuning
 
 1. Press **Square** (or finish Step 7) — the tuner prints the exact tuned values
-2. Copy them into the tuned section of `MyRobot.builder()`
+2. Copy them into the tuned section of your robot's `builder()`
 3. Rebuild and deploy
 4. Run the **Crawler Smoke Test** — a 2-minute sanity check that odometry is reporting movement
 
-> ⚠️ **Values are not permanent until you paste them.** The Dashboard values live in the tuner's memory only while the app runs. Pasting the printed builder lines into `MyRobot.builder()` is what makes them permanent.
+> ⚠️ **Values are not permanent until you paste them.** The Dashboard values live in the tuner's memory only while the app runs. Pasting the printed builder lines into your robot's `builder()` is what makes them permanent.
 
 ## Re-tuning
 

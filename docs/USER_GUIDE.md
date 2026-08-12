@@ -24,7 +24,7 @@ TeamCode/src/main/java/org/firstinspires/ftc/teamcode/
 │   └── Dashboard/                    ← field-view drawing helpers
 └── TeamscodeNotLibrary/              ← YOUR code (edit freely)
     ├── MyRobot.java                 ← names + localizer + tuning in one builder
-    ├── CrawlerTuner.java            ← the tuning OpMode (rebuilds MyRobot.builder)
+    ├── CrawlerTuner.java            ← the tuning OpMode (rebuilds your registered robot)
     ├── ExampleAuto.java / ExampleTeleOp.java
     ├── CrawlerSmokeTest.java / CrawlerSystemTest.java
     └── ManualAdjustExample.java
@@ -100,8 +100,8 @@ strafePID(0.20, 45); // 20 cm right, hold 45°
 
 ## Before you compete
 
-1. No sync needed — the tuner rebuilds `MyRobot.builder()` with live values
-2. Run the **Crawler Tuner** end-to-end and paste Step 7's builder lines into `MyRobot.builder()`
+1. No sync needed — the tuner rebuilds your registered robot with live values
+2. Run the **Crawler Tuner** end-to-end and paste Step 7's builder lines into your robot's `builder()`
 3. Run **Crawler Smoke Test** (2 min) → **Crawler System Test** (15 min)
 4. Tune at competition voltage
 

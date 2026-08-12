@@ -9,7 +9,7 @@ description: What to do physically for each of the 7 tuner steps, and how to kno
 
 Before you start, make sure:
 
-- **No sync needed** — the tuner rebuilds `MyRobot.builder()` with the live values
+- **No sync needed** — the tuner rebuilds your registered robot with the live values
 - You have a **clear 3×3 m floor space**
 - The battery is charged
 - [FTC Dashboard](ftc-dashboard.md) is open on a laptop on the robot's WiFi (highly recommended)
@@ -24,7 +24,7 @@ Before you start, make sure:
 | **Triangle** | PID step: next test (Drive → Strafe → Turn → Min power) |
 | **X** | Back a step |
 | **Circle** | Accept step, move on |
-| **Square** | Toggle the `MyRobot.builder()` snippet |
+| **Square** | Toggle the builder snippet for your robot |
 
 Values can also be typed directly into the **FTC Dashboard → Crawler Tuner** panel — both inputs stay in sync.
 
@@ -187,10 +187,10 @@ The smallest power that still overcomes static friction. If it's too low, the ro
 
 ## Step 7 · Finish
 
-The tuner shows the complete tuned values as **builder lines** for `MyRobot.builder()` (`MyRobot` is just the example name — any class extending `CrawlerRobot` works). Press **Square** any time to see them:
+The tuner shows the complete tuned values as **builder lines** for your robot's `builder()` (`MyRobot` is just the example name — any class extending `CrawlerRobot` works). Press **Square** any time to see them:
 
 ```java
-// Paste into MyRobot.builder(), replacing the tuned values below:
+// Paste into your robot's builder(), replacing the tuned values below:
 .setTrackWidth(13.0000)
 .setCenterWheelOffset(3.5000)
 .wheelDiameter(1.3780)
@@ -203,15 +203,18 @@ The tuner shows the complete tuned values as **builder lines** for `MyRobot.buil
 .arrivalThresholdCm(5.0000)
 .orbitThresholdCm(25.4000)
 .timeoutSecs(5.0000)
+.turnReferenceRadians(0.5236)
 .maxDriveSpeed(1.0000)
 ```
 
-1. Copy the lines into the tuned section of `MyRobot.builder()`
+(`.slowSpeeds(...)` / `.slowDownTurn(...)` are only printed when your robot uses them.)
+
+1. Copy the lines into the tuned section of your robot's `builder()`
 2. Rebuild and deploy
 3. Run **Crawler Smoke Test** to confirm the robot builds and odometry moves
 4. Run **Crawler System Test** for a full validation (drive, strafe, square)
 
-> ⚠️ **This step is mandatory.** Tuning values live only in the tuner's memory while the app runs. Until you paste them into `MyRobot.builder()` and rebuild, every autonomous uses the defaults.
+> ⚠️ **This step is mandatory.** Tuning values live only in the tuner's memory while the app runs. There are no library defaults — until you paste them into your robot's `builder()` and rebuild, the robot keeps whatever (possibly unset) values it had.
 
 ## Troubleshooting common tuning issues
 

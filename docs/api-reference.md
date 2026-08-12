@@ -117,28 +117,29 @@ robot.getCenterEncoder();
 
 ### `CrawlerRobot.Config` — every tunable value
 
-All fields are `public double` with defaults. Set them via the builder, read them via `robot.config`:
+All fields are `public double` with **no preset values** — every one must be set in the
+builder chain of your robot class, or `build()` fails. Read them via `robot.config`:
 
-| Field | Default | Unit | Meaning |
+| Field | Builder setter | Unit | Meaning |
 |---|---|---|---|
-| `trackWidthIn` | 13.0 | in | Distance between the two parallel odometry wheels |
-| `centerWheelOffsetIn` | 3.5 | in | Forward distance from center to the perpendicular wheel |
-| `wheelDiameterIn` | 1.37795 | in | Odometry wheel diameter (35 mm pod) |
-| `ticksPerRev` | 2000 | ticks | Encoder counts per wheel revolution |
-| `driveKp` / `driveKi` / `driveKd` | 0.05 / 0 / 0 | per m | Drive PID gains |
-| `strafeKp` / `strafeKi` / `strafeKd` | 0.05 / 0 / 0 | per m | Strafe PID gains |
-| `steerP` / `steerI` / `steerD` | 0.03 / 0 / 0 | per ° | Heading-hold and turn PID gains |
-| `minPower` | 0.15 | power | Friction deadband — smallest power that moves the robot |
-| `defaultMoveSpeed` | 0.7 | power | Cruise power between waypoints |
-| `defaultTurnSpeed` | 0.4 | power | Turn-power scale during paths |
-| `followDistanceCm` | 25.4 | cm | Pure-pursuit look-ahead radius |
-| `arrivalThresholdCm` | 5.0 | cm | "Arrived" distance → fires `onReach` |
-| `orbitThresholdCm` | 25.4 | cm | Distance over which turn power fades to zero near a waypoint |
-| `slowMoveSpeed` / `slowTurnSpeed` / `slowFollowDistanceCm` | 0.3 / 0.2 / 12.7 | — | Used by `Waypoint.slow(config)` (not exposed on the builder) |
-| `slowDownTurnRadians` / `slowDownTurnAmount` | 0.5 / 0.5 | — | Stored on waypoints; **not read by `FOFollower` yet** |
-| `timeoutSecs` | 5.0 | s | Max seconds per path leg |
-| `maxDriveSpeed` | 1.0 | power | Clamp for `drive()`/`driveFieldRelative()` |
-| `turnReferenceRadians` | `toRadians(30)` | rad | Heading-error scale for path turn power |
+| `trackWidth` | `.setTrackWidth(x)` | in | Distance between the two parallel odometry wheels |
+| `centerWheelOffset` | `.setCenterWheelOffset(x)` | in | Forward distance from center to the perpendicular wheel |
+| `wheelDiameter` | `.wheelDiameter(x)` | in | Odometry wheel diameter (35 mm pod) |
+| `ticksPerRev` | `.ticksPerRev(n)` | ticks | Encoder counts per wheel revolution |
+| `driveKp` / `driveKi` / `driveKd` | `.drivePid(kp, ki, kd)` | per m | Drive PID gains |
+| `strafeKp` / `strafeKi` / `strafeKd` | `.strafePid(kp, ki, kd)` | per m | Strafe PID gains |
+| `steerP` / `steerI` / `steerD` | `.steerPid(p, i, d)` | per ° | Heading-hold and turn PID gains |
+| `minPower` | `.minPower(x)` | power | Friction deadband — smallest power that moves the robot |
+| `defaultMoveSpeed` | `.pathDefaults(move, turn, follow)` | power | Cruise power between waypoints |
+| `defaultTurnSpeed` | `.pathDefaults(move, turn, follow)` | power | Turn-power scale during paths |
+| `followDistanceCm` | `.pathDefaults(move, turn, follow)` | cm | Pure-pursuit look-ahead radius |
+| `arrivalThresholdCm` | `.arrivalThresholdCm(x)` | cm | "Arrived" distance → fires `onReach` |
+| `orbitThresholdCm` | `.orbitThresholdCm(x)` | cm | Distance over which turn power fades to zero near a waypoint |
+| `slowMoveSpeed` / `slowTurnSpeed` / `slowFollowDistanceCm` | `.slowSpeeds(move, turn, followCm)` | — | Used by `Waypoint.slow(config)`; 0 = not used |
+| `slowDownTurnRadians` / `slowDownTurnAmount` | `.slowDownTurn(radians, amount)` | — | Turn slow-down trigger/amount; 0 = not used |
+| `timeoutSecs` | `.timeoutSecs(x)` | s | Max seconds per path leg |
+| `maxDriveSpeed` | `.maxDriveSpeed(x)` | power | Clamp for `drive()`/`driveFieldRelative()` |
+| `turnReferenceRadians` | `.turnReferenceRadians(x)` | rad | Heading-error scale for path turn power |
 
 ```java
 double tpm = robot.config.ticksPerMeter();   // ticks per meter (computed from diameter/ticks)
@@ -339,19 +340,26 @@ All in `TeamCode/.../Crawler/Tuning/`. Driven by the shipped `CrawlerTuner` OpMo
 |---|---|
 | `TuningSession` | The 7-step guided session; `loop()` per OpMode cycle |
 | `TuningConfig` | `public static` live values, annotated `@Config("Crawler Tuner")` for FTC Dashboard |
-| `TuningRobotFactory` | One-method interface `CrawlerRobot create(CrawlerRobot.Config)` — your robot builder |
+| `TuningRobotFactory` | Interface `CrawlerRobot create()` + `create(CrawlerRobot.Config)` — built from your registered robot |
 | `TuningPidRunner` | Runs PID tests through the **real** `RobotOrientedDrive` engine |
 | `TuningDashboard` | `drawRobot(robot)` → robot on the Dashboard field view |
 | `TuningTelemetry` | `MultipleTelemetry` wrapping Driver Station + Dashboard |
 | `TuningActiveCheck` | `boolean isActive()` — OpMode stop detection |
 | `TuningUtil` | Gamepad edge-detection + IMU helpers |
-| `MyRobotSnippet` | Builds the copy-paste builder lines |
+| `TuningSnippet` | Builds the copy-paste builder lines |
 
-**Your hook is `TuningRobotFactory`** — the tuner rebuilds your robot whenever a value changes:
+**Your hook is `CrawlerRobotRegistry`** — the shipped OpModes build whatever robot you
+registered (see [Setup](setup.md)), and `TuningSession` seeds the tuner's starting
+values from that robot's builder instead of hard-coded presets:
 
 ```java
 // In CrawlerTuner.java:
-TuningRobotFactory factory = config -> MyRobot.buildTuned(hardwareMap, config);
+TuningRobotFactory factory = new TuningRobotFactory() {
+    public CrawlerRobot create() { return CrawlerRobotRegistry.create(hardwareMap); }
+    public CrawlerRobot create(CrawlerRobot.Config config) {
+        return CrawlerRobotRegistry.create(hardwareMap, config);
+    }
+};
 ```
 
 ---

@@ -99,7 +99,7 @@ description: Fix common Crawler problems
 
 **Likely causes:** the tuned values were pasted into the wrong place, or `MyRobot` was changed mid-season.
 
-**Fix:** paste the snippet into the tuned section of `MyRobot.builder()` and rebuild. The tuner rebuilds `MyRobot.builder()` with live values — your device names and localizer — so the hardware always matches; only the numbers can drift.
+**Fix:** paste the snippet into the tuned section of your robot's `builder()` and rebuild. The tuner rebuilds your registered robot with live values — your device names and localizer — so the hardware always matches; only the numbers can drift.
 
 ## Changes in the Dashboard don't take effect
 

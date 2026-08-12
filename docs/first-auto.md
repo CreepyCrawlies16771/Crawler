@@ -12,7 +12,7 @@ An autonomous runs when the match starts, with no driver input. With Crawler you
 ## The minimum working example
 
 ```java
-package org.firstinspires.ftc.teamcode.TeamscodeNotLibrary;
+package org.firstinspires.ftc.teamcode.Teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -38,12 +38,12 @@ public class RedAuto extends LinearOpMode {
 
         // 4. Follow the path (blocking — runs until done or stopped)
         follower.follow(
-            Waypoint.at(0, 0, robot.config).build(),
-            Waypoint.at(100, 0, robot.config).speed(0.8).build(),
-            Waypoint.at(100, 100, robot.config)
-                .slow(robot.config)
-                .onReach(robot::openClaw)
-                .build()
+                Waypoint.at(0, 0, robot.config).build(),
+                Waypoint.at(100, 0, robot.config).speed(0.8).build(),
+                Waypoint.at(100, 100, robot.config)
+                        .slow(robot.config)
+                        .onReach(robot::openClaw)
+                        .build()
         );
 
         // 4. Always stop the robot when done
