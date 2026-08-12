@@ -539,6 +539,32 @@ Swap the localizer line:
 
 - The robot's pose won't change when the robot moves — that's expected. Switch to a real localizer before testing on the floor.
 
+### 6 · SimulatedLocaliser (integration tests)
+
+*No robot needed — run the whole movement stack on your PC.*
+
+Crawler ships with JVM integration tests that build your robot with **simulated motors, IMU, and odometry** and drive it through real paths — no Driver Station, no robot, no battery. They're how you can see and check movement changes before ever touching hardware:
+
+```bash
+./gradlew :TeamCode:testDebugUnitTest
+```
+
+The tests exercise the full pipeline — builder → robot → preflight → pure pursuit → field-relative drive → odometry — with a `SimulatedLocaliser` that integrates the four drive-motor positions with mecanum kinematics (chosen with `.withSimulatedLocaliser()`). The sim fakes live in the `Crawler.sim` test package:
+
+| Fake | Replaces |
+| --- | --- |
+| `SimulatedMotor` | encoder + motor (position integrates power over wall-clock time) |
+| `SimulatedImu` | IMU (constant zero orientation) |
+| `SimulatedHardwareMap` | hardware map (hands out the fakes by name) |
+| `FakeTelemetry` | telemetry (no-op) |
+
+Integration tests to know about:
+
+- **`SimulatedPathIntegrationTest`** — follows a straight line and a square through `FOFollower`; the square test asserts the robot genuinely crosses the field (a probe thread samples the pose while `follow()` blocks).
+- **`TuningConfigIntegrationTest`** — verifies the tuner's config lifecycle: `TuningConfig.seed(config) → toConfig()` round-trips every value, and `TuningSnippet` prints it back as builder lines.
+
+These run alongside the unit tests, so `git push` + CI (or a local `./gradlew test`) shows movement regressions before a single match. The simulated localizer itself stays in the library as a dev tool — never ship it as your on-field localizer.
+
 </div>
 
 ## Fixing motor directions
