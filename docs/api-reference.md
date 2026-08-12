@@ -53,7 +53,7 @@ The builder is **staged** — each stage only exposes the calls valid at that po
 | Stage | Methods | Ends with |
 |---|---|---|
 | Motor names | `.frontLeft(name)` `.frontRight(name)` `.backLeft(name)` `.backRight(name)` `.imu(name)` `.imuOrientation(logo, usb)` `.invertFrontLeft()` `.invertFrontRight()` `.invertBackLeft()` `.invertBackRight()` | `.motors()` |
-| Localizer | `.withMotorEncoders()` · `.withDevLocaliser()` · `.withThreeDeadWheels(l, r, c)` · `.withTwoDeadWheels(l, c)` · `.withPinpoint(name)` | varies |
+| Localizer | `.withMotorEncoders()` · `.withSimulatedLocaliser()` · `.withDevLocaliser()` · `.withThreeDeadWheels(l, r, c)` · `.withTwoDeadWheels(l, c)` · `.withPinpoint(name)` | varies |
 | Localizer config | `.setTrackWidth(in)` · `.setCenterWheelOffset(in)` · `.invertLeftEncoder()` `.invertRightEncoder()` `.invertCenterEncoder()` · `.setConfig(x, y, unit, pod, xDir, yDir)` (Pinpoint) | `.build()` or `IReadyStage` |
 | Tuning | `.wheelDiameter(in)` `.ticksPerRev(n)` `.drivePid(kp, ki, kd)` `.strafePid(kp, ki, kd)` `.steerPid(p, i, d)` `.minPower(x)` `.pathDefaults(move, turn, followCm)` `.arrivalThresholdCm(cm)` `.orbitThresholdCm(cm)` `.timeoutSecs(s)` `.maxDriveSpeed(x)` | `.build()` |
 
@@ -93,7 +93,7 @@ public static CrawlerRobot.Builder builder(HardwareMap hwMap) {
 | `config` | `CrawlerRobot.Config` | All tuned values, read live by every movement system |
 | `frontLeft` / `frontRight` / `backLeft` / `backRight` | `MotorEx` (FTCLib) | Drive motors — `set(power)` them directly if you need raw control |
 | `imu` | `IMU` | The REV IMU, already initialized with your orientation |
-| `localisation` | `Localisation` | Which localizer was selected (`MotorEncoder`, `TwoDeadWheel`, `ThreeDeadWheel`, `Pinpoint`, `DevLocaliser`) |
+| `localisation` | `Localisation` | Which localizer was selected (`MotorEncoder`, `TwoDeadWheel`, `ThreeDeadWheel`, `Pinpoint`, `Simulated`, `DevLocaliser`) |
 | `localiser` | `CrawlerLocaliser` | The active localizer — `update()`, `getPose()`, `resetPose(pose)` |
 
 ### Public methods
@@ -158,6 +158,7 @@ All five implement `CrawlerLocaliser` (`update()`, `getPose()`, `resetPose(Pose2
 | `TwoWheelLocaliser` | `.withTwoDeadWheels(l, c)` | Requires `.setTrackWidth(...)` |
 | `PinpointLocaliser` | `.withPinpoint(name)` + `.setConfig(...)` | GoBILDA Pinpoint v1/v2, full config via `.setConfig` |
 | `MotorEncoderLocaliser` | `.withMotorEncoders()` | Uses the four drive motors |
+| `SimulatedLocaliser` | `.withSimulatedLocaliser()` | Simulated mecanum odometry — for JVM integration tests (see [Setup → SimulatedLocaliser](setup.md#6--simulatedlocaliser-integration-tests)) |
 | `DevLocaliser` | `.withDevLocaliser()` | Simulated pose — for testing without hardware |
 
 **Pinpoint full config:**
