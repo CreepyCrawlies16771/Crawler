@@ -22,7 +22,7 @@ TeamscodeNotLibrary/
 Everything — device names, localizer, tuned numbers, mechanisms — lives in one file:
 
 ```java
-package org.firstinspires.ftc.teamcode.TeamscodeNotLibrary;
+package org.firstinspires.ftc.teamcode.Teamcode;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -33,14 +33,14 @@ import org.firstinspires.ftc.teamcode.Crawler.core.Robot.CrawlerRobot;
 
 public class MyRobot extends CrawlerRobot {
 
-    public static final String FRONT_LEFT  = "fl";
+    public static final String FRONT_LEFT = "fl";
     public static final String FRONT_RIGHT = "fr";
-    public static final String BACK_LEFT   = "bl";
-    public static final String BACK_RIGHT  = "br";
-    public static final String IMU         = "imu";
-    public static final String ENC_LEFT    = "enc_l";
-    public static final String ENC_RIGHT   = "enc_r";
-    public static final String ENC_CENTER  = "enc_c";
+    public static final String BACK_LEFT = "bl";
+    public static final String BACK_RIGHT = "br";
+    public static final String IMU = "imu";
+    public static final String ENC_LEFT = "enc_l";
+    public static final String ENC_RIGHT = "enc_r";
+    public static final String ENC_CENTER = "enc_c";
 
     public static final String CLAW_SERVO = "claw";
     public static final String LIFT_MOTOR = "lift";
@@ -86,8 +86,13 @@ public class MyRobot extends CrawlerRobot {
                 .maxDriveSpeed(1.0);
     }
 
-    public void openClaw()  { clawServo.setPosition(0.8); }
-    public void closeClaw() { clawServo.setPosition(0.2); }
+    public void openClaw() {
+        clawServo.setPosition(0.8);
+    }
+
+    public void closeClaw() {
+        clawServo.setPosition(0.2);
+    }
 
     public void scoreHighBasket() {
         liftMotor.setTargetPosition(800);
@@ -102,7 +107,7 @@ public class MyRobot extends CrawlerRobot {
 A specimen-scoring auto: start at the staging area, drive to the basket, drop the preload, come back for more.
 
 ```java
-package org.firstinspires.ftc.teamcode.TeamscodeNotLibrary;
+package org.firstinspires.ftc.teamcode.Teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -127,30 +132,30 @@ public class RedAuto extends LinearOpMode {
 
         // Preloaded specimen → high basket
         follower.follow(
-            Waypoint.at(0, 0, robot.config).build(),
+                Waypoint.at(0, 0, robot.config).build(),
 
-            Waypoint.at(80, 0, robot.config)
-                .speed(0.8)
-                .onReach(() -> {
-                    telemetry.addData("Action", "Approaching basket");
-                    telemetry.update();
-                })
-                .build(),
+                Waypoint.at(80, 0, robot.config)
+                        .speed(0.8)
+                        .onReach(() -> {
+                            telemetry.addData("Action", "Approaching basket");
+                            telemetry.update();
+                        })
+                        .build(),
 
-            Waypoint.at(80, 80, robot.config)
-                .slow(robot.config)
-                .onReach(() -> {
-                    robot.scoreHighBasket();      // lift + open claw
-                    sleep(400);                   // let the specimen drop
-                    robot.closeClaw();
-                })
-                .build()
+                Waypoint.at(80, 80, robot.config)
+                        .slow(robot.config)
+                        .onReach(() -> {
+                            robot.scoreHighBasket();      // lift + open claw
+                            sleep(400);                   // let the specimen drop
+                            robot.closeClaw();
+                        })
+                        .build()
         );
 
         // Back to the staging area
         follower.follow(
-            Waypoint.at(80, 40, robot.config).speed(0.7).build(),
-            Waypoint.at(0, 0, robot.config).speed(0.7).build()
+                Waypoint.at(80, 40, robot.config).speed(0.7).build(),
+                Waypoint.at(0, 0, robot.config).speed(0.7).build()
         );
 
         telemetry.addData("Final X (cm)", String.format("%.2f", robot.getPose().getX()));
@@ -164,7 +169,7 @@ public class RedAuto extends LinearOpMode {
 ## 3 · Driver.java — the TeleOp
 
 ```java
-package org.firstinspires.ftc.teamcode.TeamscodeNotLibrary;
+package org.firstinspires.ftc.teamcode.Teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -217,7 +222,7 @@ public class Driver extends LinearOpMode {
 For the last few centimeters before a mechanism action, robot-relative PID is more predictable than pure pursuit:
 
 ```java
-package org.firstinspires.ftc.teamcode.TeamscodeNotLibrary;
+package org.firstinspires.ftc.teamcode.Teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.HardwareMap;

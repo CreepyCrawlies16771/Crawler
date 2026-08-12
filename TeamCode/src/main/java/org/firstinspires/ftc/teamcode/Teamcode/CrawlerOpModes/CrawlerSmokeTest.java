@@ -1,13 +1,18 @@
-package org.firstinspires.ftc.teamcode.TeamscodeNotLibrary;
+package org.firstinspires.ftc.teamcode.Teamcode.CrawlerOpModes;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.Crawler.core.Robot.CrawlerRobot;
+import org.firstinspires.ftc.teamcode.Crawler.core.Robot.CrawlerRobotRegistry;
+
 /**
  * Fast automated smoke test (~2 min). Run after tuning or before every practice.
  *
- * <p>Checks: robot builds, pose updates, drive moves the robot, config is wired.</p>
+ * <p>Checks: robot builds, pose updates, drive moves the robot, config is wired.
+ * Builds whatever robot you registered with {@link CrawlerRobotRegistry} — no
+ * hard-coded example class.</p>
  */
 @Autonomous(name = "Crawler Smoke Test", group = "Crawler Tests")
 public class CrawlerSmokeTest extends LinearOpMode {
@@ -22,14 +27,14 @@ public class CrawlerSmokeTest extends LinearOpMode {
         String failReason = "";
 
         telemetry.addLine("Crawler Smoke Test");
-        telemetry.addLine("Builds MyRobot and runs short drive check");
+        telemetry.addLine("Builds your registered robot and runs short drive check");
         telemetry.update();
 
-        MyRobot robot;
+        CrawlerRobot robot;
         try {
-            robot = new MyRobot(hardwareMap);
+            robot = CrawlerRobotRegistry.create(hardwareMap);
         } catch (Exception e) {
-            telemetry.addLine("FAIL: Could not build MyRobot");
+            telemetry.addLine("FAIL: Could not build your robot");
             telemetry.addLine(e.getMessage());
             telemetry.update();
             return;
@@ -60,14 +65,14 @@ public class CrawlerSmokeTest extends LinearOpMode {
                     + " cm (need " + MIN_POSE_DELTA_CM + "+). Check encoders / tuning.";
         }
 
-        if (robot.config.trackWidthIn <= 0 || robot.config.ticksPerRev <= 0) {
+        if (robot.config.trackWidth <= 0 || robot.config.ticksPerRev <= 0) {
             pass = false;
-            failReason = "Invalid config on robot — re-run Crawler Tuner and update MyRobot.";
+            failReason = "Invalid config on robot — re-run Crawler Tuner and update your robot builder.";
         }
 
         telemetry.addLine("---");
         telemetry.addData("Distance reported (cm)", String.format("%.2f", delta));
-        telemetry.addData("trackWidth in", robot.config.trackWidthIn);
+        telemetry.addData("trackWidth in", robot.config.trackWidth);
         telemetry.addData("ticksPerRev", robot.config.ticksPerRev);
         if (pass) {
             telemetry.addLine("RESULT: PASS");

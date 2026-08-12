@@ -28,7 +28,7 @@ public class MotorEncoderLocaliser implements CrawlerLocaliser {
         odometry = new DifferentialOdometry(
                 () -> (frontLeft.getDistance() + backLeft.getDistance()) / 2.0,
                 () -> (frontRight.getDistance() + backRight.getDistance()) / 2.0,
-                UnitConverter.inToCm(config.trackWidthIn)
+                UnitConverter.inToCm(config.trackWidth)
         );
     }
 

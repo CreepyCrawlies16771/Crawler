@@ -103,14 +103,14 @@ public final class CrawlerPreflight {
         if (!(c.timeoutSecs > 0)) {
             bad.add("timeoutSecs=" + c.timeoutSecs);
         }
-        if (!(c.wheelDiameterIn > 0)) {
-            bad.add("wheelDiameterIn=" + c.wheelDiameterIn);
+        if (!(c.wheelDiameter > 0)) {
+            bad.add("wheelDiameterIn=" + c.wheelDiameter);
         }
         if (!(c.ticksPerRev > 0)) {
             bad.add("ticksPerRev=" + c.ticksPerRev);
         }
-        if (!(c.trackWidthIn > 0)) {
-            bad.add("trackWidthIn=" + c.trackWidthIn);
+        if (!(c.trackWidth > 0)) {
+            bad.add("trackWidthIn=" + c.trackWidth);
         }
         if (!bad.isEmpty()) {
             errors.add(CrawlerErrors.exception(CrawlerError.SETUP_INVALID_CONFIG, join(bad)));

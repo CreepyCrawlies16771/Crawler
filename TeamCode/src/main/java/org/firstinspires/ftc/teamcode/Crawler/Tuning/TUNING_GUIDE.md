@@ -1,7 +1,7 @@
 # Crawler Tuner — In-Repo Guide
 
 This guide covers the tuning system in this package (`TuningSession`, `TuningConfig`, …)
-and its OpMode, `TeamscodeNotLibrary/CrawlerTuner.java`. For the full user-facing
+and its OpMode, `Teamcode/CrawlerOpModes/CrawlerTuner.java`. For the full user-facing
 walkthrough, see `docs/tuning.md` and `docs/tuning-guide.md` (or the built site in `docs-html/`).
 
 ## What the tuner does
@@ -25,8 +25,12 @@ All tunable values are `public static` fields in `TuningConfig`, annotated with
 - **FTC Dashboard** (`http://<robot-ip>:8080/dash`) shows a `Crawler Tuner` panel where
   you can type values directly — they apply on the next loop.
 - Gamepad adjustments write to the same fields, so both inputs stay in sync.
-- Values persist between OpMode runs (static fields), but **not** across app restarts —
-  the final values must be pasted into `MyRobot.builder()`.
+- There are **no presets**: `TuningSession` seeds the fields from your robot's builder
+  each time the tuner starts (`TuningConfig.seed(...)`), so tuning always begins from
+  the values already in your robot class. Within a run the values stay in the static
+  fields while you edit them, and they persist between OpMode runs, but each tuner
+  start re-seeds from the builder — the final values must be pasted into your robot's
+  `builder()`.
 
 `TuningSession` calls `TuningConfig.toConfig()` every loop and rebuilds the robot only
 when a value actually changed.
@@ -52,18 +56,19 @@ Tuner output appears in the FTC Dashboard:
 
 ## Setup requirements
 
-- The `CrawlerTuner` OpMode lives in `TeamscodeNotLibrary/` and supplies the tuning robot
-  through a `TuningRobotFactory` — in the sample, `config -> MyRobot.buildTuned(hwMap, config)`,
-  built from the `MyRobot` device-name constants. There is no separate config file to keep in sync.
+- The `CrawlerTuner` OpMode lives in `Teamcode/CrawlerOpModes/` and supplies the tuning
+  robot through a `TuningRobotFactory` backed by `CrawlerRobotRegistry` — it builds
+  whatever robot the team registered (see `docs/setup.md`), so there is no hard-coded
+  robot class and no separate config file to keep in sync.
 - `TuningSession` rebuilds the robot whenever a tuning value changes, calling the factory
   with the live values from `TuningConfig`.
-- If your robot uses a different localizer or extra builder stages, update
-  `MyRobot.builder(...)` — the tuner follows automatically.
+- If your robot uses a different localizer or extra builder stages, update your robot's
+  `builder(...)` — the tuner follows automatically.
 
 ## After tuning
 
 1. Press **Square** (or finish Step 7) and copy the printed builder lines.
-2. Paste them into the tuned section of `MyRobot.builder()` in `MyRobot.java`.
+2. Paste them into the tuned section of your robot's `builder()`.
 3. Rebuild, deploy, and run `CrawlerSmokeTest` to confirm odometry is reporting movement.
 
-> ⚠️ Tuning values are **not permanent** until pasted into `MyRobot.builder()`.
+> ⚠️ Tuning values are **not permanent** until pasted into your robot's `builder()`.

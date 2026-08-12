@@ -32,18 +32,19 @@ testImplementation 'junit:junit:4.13.2'
 | Package | Contents |
 |---|---|
 | `…teamcode.Crawler.core.Robot` | `CrawlerRobot` (+ nested `Config`, `Localisation`, `Builder`, stage interfaces), `driveTrain` (legacy, unused) |
-| `…teamcode.Crawler.core.Localizers` | `CrawlerLocaliser`, `ThreeDeadWheelLocaliser`, `TwoWheelLocaliser`, `PinpointLocaliser`, `MotorEncoderLocaliser`, `DevLocaliser` |
+| `…teamcode.Crawler.core.Localizers` | `CrawlerLocaliser`, `ThreeDeadWheelLocaliser`, `TwoWheelLocaliser`, `PinpointLocaliser`, `MotorEncoderLocaliser`, `SimulatedLocaliser`, `DevLocaliser` |
 | `…teamcode.Crawler.core.utils` | `Waypoint`, `Point`, `Vector2d`, `CrawlerMath`, `UnitConverter` |
 | `…teamcode.Crawler.FieldOrient` | `FOFollower`, `RobotMovement` |
 | `…teamcode.Crawler.RobotOrient` | `RobotOrientedDrive`, `ROMovementEngine`, `HeadingTimeline`, `AnimationBuilder`, `IndexerRotation`, `Tuner` (deprecated) |
-| `…teamcode.Crawler.Tuning` | `TuningSession`, `TuningConfig`, `TuningRobotFactory`, `TuningActiveCheck`, `TuningTelemetry` (+ package-private `TuningPidRunner`, `TuningDashboard`, `TuningUtil`, `MyRobotSnippet`) |
+| `…teamcode.Crawler.Tuning` | `TuningSession`, `TuningConfig`, `TuningRobotFactory`, `TuningActiveCheck`, `TuningTelemetry` (+ package-private `TuningPidRunner`, `TuningDashboard`, `TuningUtil`, `TuningSnippet`) |
 | `…teamcode.Crawler.Dashboard` | `DashboardFieldViewUtils` |
 | `…teamcode.Crawler.Vision` | `AprilTagWebcam`, `Rotation` |
 | `…teamcode.Crawler.annotations` | `Experimental` (+ processor) |
 
 **Internal / do-not-reference in user code:** `TuningPidRunner`, `TuningDashboard`,
-`TuningUtil`, `MyRobotSnippet` (all package-private), `DevLocaliser` (dev-only),
-`driveTrain`, `Tuner`, `IndexerRotation`, `AnimationBuilder` (unwired).
+`TuningUtil`, `TuningSnippet` (all package-private), `SimulatedLocaliser`,
+`DevLocaliser` (dev/test-only), `driveTrain`, `Tuner`, `IndexerRotation`,
+`AnimationBuilder` (unwired).
 
 ---
 
@@ -74,34 +75,35 @@ public class CrawlerRobot {
 
 ### `CrawlerRobot.Config`
 
-Every tunable value, with library defaults. Set via builder methods (below) — the
-shipped `MyRobot` example keeps the numbers inline in `MyRobot.builder()`; the tuner
-prints matching builder lines to paste there.
+Every tunable value. **No library presets** — every field starts at `0` and
+`Config.validate()` rejects anything left unset, so the config comes entirely from
+your robot's builder (the shipped `MyRobot` example keeps the numbers inline in
+`MyRobot.builder()`; the tuner prints matching builder lines to paste there).
 
 | Field | Default | Meaning |
 |---|---|---|
-| `trackWidthIn` | 13.0 | distance between the parallel odometry wheels (in) |
-| `centerWheelOffsetIn` | 3.5 | center pod distance forward of robot center (in) |
-| `wheelDiameterIn` | 1.37795 | odometry wheel diameter (in) |
-| `ticksPerRev` | 2000 | encoder counts per wheel revolution |
-| `driveKp / driveKi / driveKd` | 0.05 / 0.0 / 0.0 | drive PID (per meter of error) |
-| `strafeKp / strafeKi / strafeKd` | 0.05 / 0.0 / 0.0 | strafe PID (per meter) |
-| `steerP / steerI / steerD` | 0.03 / 0.0 / 0.0 | heading PID (per degree) |
-| `minPower` | 0.15 | friction deadband |
-| `defaultMoveSpeed` | 0.7 | cruise power between waypoints |
-| `defaultTurnSpeed` | 0.4 | path turn-power scale |
-| `followDistanceCm` | 25.4 | pure-pursuit look-ahead radius (cm) |
-| `arrivalThresholdCm` | 5.0 | "arrived" distance (cm) |
-| `orbitThresholdCm` | 25.4 | distance over which turn power fades |
-| `slowMoveSpeed` | 0.3 | used by `Waypoint.slow(config)` |
-| `slowTurnSpeed` | 0.2 | used by `Waypoint.slow(config)` |
-| `slowFollowDistanceCm` | 12.7 | used by `Waypoint.slow(config)` |
-| `slowDownTurnRadians` | 0.5 | **stored, unused by the follower** |
-| `slowDownTurnAmount` | 0.5 | **stored, unused by the follower** |
-| `timeoutSecs` | 5.0 | waypoint leg timeout |
-| `maxDriveSpeed` | 1.0 | clamps every drive input |
-| `turnReferenceRadians` | `toRadians(30)` | heading-error scale for path turn power |
-| `ticksPerMeter()` | — | `ticksPerRev / (wheelDiameterIn × 0.0254 × π)` |
+| `trackWidth` | 0 (must set) | distance between the parallel odometry wheels (in) |
+| `centerWheelOffset` | 0 (must set) | center pod distance forward of robot center (in, signed) |
+| `wheelDiameter` | 0 (must set) | odometry wheel diameter (in) |
+| `ticksPerRev` | 0 (must set) | encoder counts per wheel revolution |
+| `driveKp / driveKi / driveKd` | 0 / 0 / 0 | drive PID (per meter of error) |
+| `strafeKp / strafeKi / strafeKd` | 0 / 0 / 0 | strafe PID (per meter) |
+| `steerP / steerI / steerD` | 0 / 0 / 0 | heading PID (per degree) |
+| `minPower` | 0 | friction deadband |
+| `defaultMoveSpeed` | 0 (must set) | cruise power between waypoints |
+| `defaultTurnSpeed` | 0 (must set) | path turn-power scale |
+| `followDistanceCm` | 0 (must set) | pure-pursuit look-ahead radius (cm) |
+| `arrivalThresholdCm` | 0 (must set) | "arrived" distance (cm) |
+| `orbitThresholdCm` | 0 (must set) | distance over which turn power fades |
+| `slowMoveSpeed` | 0 | used by `Waypoint.slow(config)` |
+| `slowTurnSpeed` | 0 | used by `Waypoint.slow(config)` |
+| `slowFollowDistanceCm` | 0 | used by `Waypoint.slow(config)` |
+| `slowDownTurnRadians` | 0 | **stored, unused by the follower** |
+| `slowDownTurnAmount` | 0 | **stored, unused by the follower** |
+| `timeoutSecs` | 0 (must set) | waypoint leg timeout |
+| `maxDriveSpeed` | 0 (must set) | clamps every drive input |
+| `turnReferenceRadians` | 0 (must set) | heading-error scale for path turn power |
+| `ticksPerMeter()` | — | `ticksPerRev / (wheelDiameter × 0.0254 × π)` |
 | `ticksPerCm()` | — | `ticksPerMeter() / 100` |
 
 ### The staged builder
@@ -149,7 +151,7 @@ Controller app as a GoBILDA Pinpoint.
 
 ### `CrawlerRobot.Localisation`
 
-`MotorEncoder`, `TwoDeadWheel`, `ThreeDeadWheel`, `Pinpoint`, `DevLocaliser`.
+`MotorEncoder`, `TwoDeadWheel`, `ThreeDeadWheel`, `Pinpoint`, `Simulated`, `DevLocaliser`.
 
 ---
 
@@ -307,16 +309,23 @@ Public surface:
 
 ```java
 public final class TuningConfig {                        // @Config("Crawler Tuner")
-    // public static double fields mirroring CrawlerRobot.Config (minus slow* / turnReferenceRadians):
+    // public static double fields mirroring CrawlerRobot.Config — ALL start at 0 and
+    // are seeded from the robot's builder each session via TuningConfig.seed(config):
     public static double trackWidthIn, centerWheelOffsetIn, wheelDiameterIn, ticksPerRev;
     public static double driveKp, driveKi, driveKd, strafeKp, strafeKi, strafeKd;
     public static double steerP, steerI, steerD, minPower;
     public static double moveSpeed, turnSpeed, followDistanceCm, arrivalThresholdCm,
-                         orbitThresholdCm, timeoutSecs, maxDriveSpeed;
+                         orbitThresholdCm, timeoutSecs, maxDriveSpeed, turnReferenceRadians;
+    public static double slowMoveSpeed, slowTurnSpeed, slowFollowDistanceCm,
+                         slowDownTurnRadians, slowDownTurnAmount;
+    // package-private static void seed(CrawlerRobot.Config);
     // package-private static CrawlerRobot.Config toConfig();
 }
 
-public interface TuningRobotFactory { CrawlerRobot create(CrawlerRobot.Config config); }
+public interface TuningRobotFactory {
+    CrawlerRobot create();                       // reference robot from the registry
+    CrawlerRobot create(CrawlerRobot.Config config);
+}
 public interface TuningActiveCheck { boolean isActive(); }
 
 public final class TuningTelemetry {

@@ -149,9 +149,14 @@ public class FOFollower {
         // Stall detector for CRWL-202: if the robot is commanded to move but the
         // localizer reports no motion for a few seconds, the encoders aren't
         // seeing movement (wrong port / unplugged / reversed setup).
+        //
+        // Movement is ACCUMULATED over the stall window (not required per loop
+        // iteration), so the detector works at any loop rate — a 50 Hz OpMode and
+        // a 100 kHz simulated test both behave identically.
         ElapsedTime stallTimer = new ElapsedTime();
         double lastX = robot.getPose().getX();
         double lastY = robot.getPose().getY();
+        double accumulatedMotion = 0.0;
 
         while (opModeProxy.isActive()) {
             // Update robot position from localiser
@@ -171,14 +176,16 @@ public class FOFollower {
             // Stall detection (only while we still have distance to cover)
             double x = robot.localiser.getPose().getX();
             double y = robot.localiser.getPose().getY();
-            if (Math.hypot(x - lastX, y - lastY) > 0.2) {
+            accumulatedMotion += Math.hypot(x - lastX, y - lastY);
+            lastX = x;
+            lastY = y;
+            if (accumulatedMotion > 0.2) {
                 stallTimer.reset();
+                accumulatedMotion = 0.0;
             } else if (stallTimer.seconds() > 3.0) {
                 robot.stop();
                 CrawlerErrors.throwError(CrawlerError.ODO_ENCODERS_NOT_MOVING);
             }
-            lastX = x;
-            lastY = y;
 
             // Compute and execute movement using pure pursuit
             movement.goToPosition(

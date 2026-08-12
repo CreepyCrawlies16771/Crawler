@@ -15,9 +15,21 @@ public class WaypointTest {
 
     private static final double DELTA = 1e-9;
 
+    /** A config with the path speeds Waypoint needs (no library presets exist). */
+    private static CrawlerRobot.Config config() {
+        CrawlerRobot.Config c = new CrawlerRobot.Config();
+        c.defaultMoveSpeed = 0.7;
+        c.defaultTurnSpeed = 0.4;
+        c.followDistanceCm = 25.4;
+        c.slowMoveSpeed = 0.3;
+        c.slowTurnSpeed = 0.2;
+        c.slowFollowDistanceCm = 12.7;
+        return c;
+    }
+
     @Test
     public void defaults_useRobotConfig() {
-        CrawlerRobot.Config config = new CrawlerRobot.Config();
+        CrawlerRobot.Config config = config();
         Waypoint w = Waypoint.at(10, 20, config).build();
 
         assertEquals(10.0, w.x, DELTA);
@@ -32,7 +44,7 @@ public class WaypointTest {
 
     @Test
     public void builder_overrides() {
-        CrawlerRobot.Config config = new CrawlerRobot.Config();
+        CrawlerRobot.Config config = config();
         config.defaultMoveSpeed = 0.55;
 
         Waypoint w = Waypoint.at(0, 0, config)
@@ -50,10 +62,7 @@ public class WaypointTest {
 
     @Test
     public void slow_appliesSlowConfig() {
-        CrawlerRobot.Config config = new CrawlerRobot.Config();
-        config.slowMoveSpeed = 0.3;
-        config.slowTurnSpeed = 0.2;
-        config.slowFollowDistanceCm = 12.7;
+        CrawlerRobot.Config config = config();
 
         Waypoint w = Waypoint.at(1, 1, config).slow(config).build();
 
@@ -64,7 +73,7 @@ public class WaypointTest {
 
     @Test
     public void slowDown_setsBothValues() {
-        CrawlerRobot.Config config = new CrawlerRobot.Config();
+        CrawlerRobot.Config config = config();
         Waypoint w = Waypoint.at(0, 0, config).slowDown(0.3, 0.7).build();
         assertEquals(0.3, w.slowDownTurnRadians, DELTA);
         assertEquals(0.7, w.slowDownTurnAmount, DELTA);
@@ -73,7 +82,7 @@ public class WaypointTest {
     @Test
     public void onReach_runsCallback() {
         final int[] hits = {0};
-        CrawlerRobot.Config config = new CrawlerRobot.Config();
+        CrawlerRobot.Config config = config();
         Waypoint w = Waypoint.at(5, 5, config).onReach(new Runnable() {
             @Override public void run() { hits[0]++; }
         }).build();
@@ -85,7 +94,7 @@ public class WaypointTest {
 
     @Test
     public void copyConstructor_copiesFields() {
-        CrawlerRobot.Config config = new CrawlerRobot.Config();
+        CrawlerRobot.Config config = config();
         Waypoint original = Waypoint.at(3, 4, config).heading(45).speed(0.6).build();
         Waypoint copy = new Waypoint(original);
 
@@ -108,7 +117,7 @@ public class WaypointTest {
 
     @Test
     public void conversions() {
-        CrawlerRobot.Config config = new CrawlerRobot.Config();
+        CrawlerRobot.Config config = config();
         Waypoint w = Waypoint.at(2, 3, config).build();
 
         Vector2d v = w.toVector();
@@ -126,7 +135,7 @@ public class WaypointTest {
 
     @Test
     public void build_nanCoordinate_throwsNonFiniteWaypoint() {
-        CrawlerRobot.Config config = new CrawlerRobot.Config();
+        CrawlerRobot.Config config = config();
         assertBuildThrows(CrawlerError.PATH_NON_FINITE_WAYPOINT,
                 () -> Waypoint.at(Double.NaN, 10, config).build());
         assertBuildThrows(CrawlerError.PATH_NON_FINITE_WAYPOINT,
@@ -137,7 +146,7 @@ public class WaypointTest {
 
     @Test
     public void build_badSpeeds_throwBadSpeed() {
-        CrawlerRobot.Config config = new CrawlerRobot.Config();
+        CrawlerRobot.Config config = config();
         assertBuildThrows(CrawlerError.PATH_BAD_SPEED,
                 () -> Waypoint.at(0, 0, config).speed(0).build());
         assertBuildThrows(CrawlerError.PATH_BAD_SPEED,

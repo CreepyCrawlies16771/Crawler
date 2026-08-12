@@ -18,6 +18,13 @@ apply from: '../build.dependencies.gradle'
 android {
     namespace = 'org.firstinspires.ftc.teamcode'
 
+    testOptions {
+        // JVM integration tests (Crawler.sim) build real SDK objects like
+        // RevHubOrientationOnRobot, whose static init calls Android methods that
+        // are not mocked in unit tests. Return defaults instead of throwing.
+        unitTests.returnDefaultValues = true
+    }
+
     packagingOptions {
         jniLibs {
             pickFirsts += ['**/*.so']

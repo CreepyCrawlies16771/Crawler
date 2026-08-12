@@ -25,7 +25,7 @@ public class TwoWheelLocaliser implements CrawlerLocaliser {
         odometry = new DifferentialOdometry(
                 left::getDistance,
                 right::getDistance,
-                UnitConverter.inToCm(config.trackWidthIn)
+                UnitConverter.inToCm(config.trackWidth)
         );
     }
 

@@ -30,8 +30,8 @@ public class ThreeDeadWheelLocaliser implements CrawlerLocaliser {
                 leftEncoder::getDistance,
                 rightEncoder::getDistance,
                 centerEncoder::getDistance,
-                UnitConverter.inToCm(config.trackWidthIn),
-                UnitConverter.inToCm(config.centerWheelOffsetIn)
+                UnitConverter.inToCm(config.trackWidth),
+                UnitConverter.inToCm(config.centerWheelOffset)
         );
     }
 

@@ -969,6 +969,74 @@ hr { border: none; border-top: 1px solid var(--line); margin: 2.2rem 0; }
 .api-page .term-window { position: relative; z-index: 1; }
 
 /* ==========================================================
+   Hardware picker — setup page localizer filter
+   ========================================================== */
+
+.hw-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  padding: 0.9rem 1rem;
+  margin: 1.5rem 0;
+}
+.hw-picker-label {
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--green);
+  white-space: nowrap;
+}
+.hw-picker-label::before { content: '$ '; }
+.hw-select {
+  flex: 1;
+  min-width: 260px;
+  max-width: 560px;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--text);
+  background: var(--bg-1);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  padding: 0.38rem 0.6rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.hw-select:hover { border-color: var(--green); }
+.hw-select:focus-visible { outline: 1px solid var(--green); outline-offset: 1px; }
+.hw-hint {
+  flex-basis: 100%;
+  margin: 0.15rem 0 0;
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  color: var(--text-faint);
+}
+.hw-panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  padding: 1.1rem 1.3rem 0.9rem;
+  margin: 1.1rem 0;
+}
+.hw-panel > :first-child { margin-top: 0; }
+.hw-panel h3::before { content: '>'; color: var(--green); }
+.hw-panel h4 {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin: 1.6rem 0 0.2rem;
+}
+.hw-panel h4::before { content: '· '; color: var(--green); }
+.hw-panel .code-block { background: var(--code-bg); }
+
+/* ==========================================================
    Responsive
    ========================================================== */
 

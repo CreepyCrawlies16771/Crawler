@@ -11,16 +11,18 @@ import org.firstinspires.ftc.teamcode.Crawler.core.errors.CrawlerError;
 import org.firstinspires.ftc.teamcode.Crawler.core.errors.CrawlerErrors;
 import org.firstinspires.ftc.teamcode.Crawler.core.utils.Waypoint;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 /**
  * The guided tuning session behind {@code CrawlerTuner}.
  *
- * <p>The tuning robot is supplied by a {@link TuningRobotFactory} from your team code,
- * so the tuner always drives the same hardware names and localizer as your own
- * {@link CrawlerRobot} subclass (the shipped example is {@code MyRobot.builder}) — there
- * is no separate robot config to keep in sync.</p>
+ * <p>The tuning robot is supplied by a {@link TuningRobotFactory} wired to your own
+ * robot, so the tuner always drives the same hardware names and localizer as your
+ * {@link CrawlerRobot} subclass — there is no separate robot config to keep in sync.
+ * The session seeds {@link TuningConfig} from the factory's reference robot, so tuning
+ * starts from the values in your robot's builder rather than hard-coded presets.</p>
  */
 public final class TuningSession {
 
@@ -159,8 +161,8 @@ public final class TuningSession {
 
     /**
      * @param factory builds the tuning robot from live tuning values (see
-     *                {@link TuningRobotFactory} — typically your robot's builder, e.g.
-     *                {@code config -> MyRobot.buildTuned(hwMap, config)} in the shipped example)
+     *                {@link TuningRobotFactory} — wire it to your robot via
+     *                {@link org.firstinspires.ftc.teamcode.Crawler.core.Robot.CrawlerRobotRegistry})
      * @param driverTelemetry telemetry to mirror to the FTC Dashboard
      * @param gamepad the gamepad used to control the tuning steps
      * @param active lets the session know when the OpMode is stopping
@@ -172,7 +174,11 @@ public final class TuningSession {
         this.active = active;
         this.telemetry = new TuningTelemetry(driverTelemetry).get();
 
-        rebuildRobot();
+        // Build the robot once and reuse it: its config seeds TuningConfig so the tuner
+        // starts from the builder's own values — no hard-coded presets, no double build.
+        robot = factory.create();
+        TuningConfig.seed(robot.config);
+        pidRunner = new TuningPidRunner(robot, telemetry, active);
     }
 
     /** The current tuning robot (rebuilds when a tuning value changes). */
@@ -197,6 +203,8 @@ public final class TuningSession {
         telemetry.addLine("Circle: next  X: back  Square: copy values");
         telemetry.addLine("Edit values live in FTC Dashboard -> Crawler Tuner");
         telemetry.addLine("Stop OpMode, paste values into your robot, then run again");
+
+        warnAboutUnsetConfig();
 
         if (showSnippet) {
             printSnippet();
@@ -237,9 +245,9 @@ public final class TuningSession {
     }
 
     private static boolean configEquals(CrawlerRobot.Config a, CrawlerRobot.Config b) {
-        return a.trackWidthIn == b.trackWidthIn
-                && a.centerWheelOffsetIn == b.centerWheelOffsetIn
-                && a.wheelDiameterIn == b.wheelDiameterIn
+        return a.trackWidth == b.trackWidth
+                && a.centerWheelOffset == b.centerWheelOffset
+                && a.wheelDiameter == b.wheelDiameter
                 && a.ticksPerRev == b.ticksPerRev
                 && a.driveKp == b.driveKp && a.driveKi == b.driveKi && a.driveKd == b.driveKd
                 && a.strafeKp == b.strafeKp && a.strafeKi == b.strafeKi && a.strafeKd == b.strafeKd
@@ -251,7 +259,13 @@ public final class TuningSession {
                 && a.arrivalThresholdCm == b.arrivalThresholdCm
                 && a.orbitThresholdCm == b.orbitThresholdCm
                 && a.timeoutSecs == b.timeoutSecs
-                && a.maxDriveSpeed == b.maxDriveSpeed;
+                && a.maxDriveSpeed == b.maxDriveSpeed
+                && a.turnReferenceRadians == b.turnReferenceRadians
+                && a.slowMoveSpeed == b.slowMoveSpeed
+                && a.slowTurnSpeed == b.slowTurnSpeed
+                && a.slowFollowDistanceCm == b.slowFollowDistanceCm
+                && a.slowDownTurnRadians == b.slowDownTurnRadians
+                && a.slowDownTurnAmount == b.slowDownTurnAmount;
     }
 
     // -----------------------------------------------------------------------
@@ -275,8 +289,25 @@ public final class TuningSession {
     }
 
     private void printSnippet() {
-        for (String line : MyRobotSnippet.format(robot.config).split("\n")) {
+        for (String line : TuningSnippet.format(robot.config).split("\n")) {
             telemetry.addLine(line);
+        }
+    }
+
+    /**
+     * Warns when a proportional gain is still 0 — a sign the PID step hasn't been tuned
+     * yet (or the builder left it unset). A robot with {@code driveKp = 0} won't move
+     * under PID control, so this surfaces the problem before the PID tests are run.
+     */
+    private void warnAboutUnsetConfig() {
+        // <= 0 catches both unset (0) and accidental negative Dashboard inputs.
+        List<String> unset = new ArrayList<>();
+        if (TuningConfig.driveKp <= 0)  unset.add("driveKp");
+        if (TuningConfig.strafeKp <= 0) unset.add("strafeKp");
+        if (TuningConfig.steerP <= 0)   unset.add("steerP");
+        if (!unset.isEmpty()) {
+            telemetry.addLine("⚠ " + String.join(", ", unset)
+                    + " still 0 — run Step 5 (PID) or set them in your robot's builder.");
         }
     }
 

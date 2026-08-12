@@ -10,7 +10,7 @@ description: Write driver-controlled movement with driveFieldRelative
 ## The minimum working example
 
 ```java
-package org.firstinspires.ftc.teamcode.TeamscodeNotLibrary;
+package org.firstinspires.ftc.teamcode.Teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;

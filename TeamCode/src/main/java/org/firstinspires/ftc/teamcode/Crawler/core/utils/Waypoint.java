@@ -58,13 +58,9 @@ public class Waypoint {
     }
 
     /**
-     * Prefer {@link #at(double, double, CrawlerRobot.Config)} with {@code robot.config}.
+     * Creates a waypoint using your robot's tuned path defaults. The config comes from
+     * your robot's builder ({@code robot.config}) — there are no library presets.
      */
-    public static Builder at(double x, double y) {
-        return at(x, y, new CrawlerRobot.Config());
-    }
-
-    /** Creates a waypoint using your robot's tuned path defaults. */
     public static Builder at(double x, double y, CrawlerRobot.Config config) {
         if (config == null) {
             throw new IllegalArgumentException("config must be your robot.config, not null");

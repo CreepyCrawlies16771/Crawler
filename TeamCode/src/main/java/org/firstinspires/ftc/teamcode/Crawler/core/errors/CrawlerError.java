@@ -42,7 +42,7 @@ public enum CrawlerError {
 
     SETUP_DEVICE_NOT_FOUND(Category.SETUP, 104,
             "Can't find hardware device \"%s\" in the configuration.",
-            "Open the Driver Hub's Configure Robot screen, fix the name spelling/case of \"%s\", and keep MyRobot.java in sync.",
+            "Open the Driver Hub's Configure Robot screen, fix the name spelling/case of \"%s\", and keep your robot class's builder in sync.",
             true),
 
     SETUP_LOCALIZER_CONFIG_MISSING(Category.SETUP, 105,
@@ -57,7 +57,7 @@ public enum CrawlerError {
 
     SETUP_INVALID_CONFIG(Category.SETUP, 107,
             "Your robot config has an invalid value: %s",
-            "Open MyRobot.builder() (or the Crawler Tuner Dashboard panel) and set speeds between 0 and 1 and distances/timeouts greater than 0, then rebuild.",
+            "Open your robot's builder() (or the Crawler Tuner Dashboard panel) and set speeds between 0 and 1 and distances/timeouts greater than 0, then rebuild.",
             true),
 
     // ------------------------------------------------------------------ 2xx

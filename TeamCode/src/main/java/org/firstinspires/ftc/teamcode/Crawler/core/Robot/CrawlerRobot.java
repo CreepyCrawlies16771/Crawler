@@ -13,6 +13,7 @@ import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.CrawlerLocaliser;
 import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.DevLocaliser;
 import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.MotorEncoderLocaliser;
 import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.PinpointLocaliser;
+import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.SimulatedLocaliser;
 import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.ThreeDeadWheelLocaliser;
 import org.firstinspires.ftc.teamcode.Crawler.core.Localizers.TwoWheelLocaliser;
 import org.firstinspires.ftc.teamcode.Crawler.core.errors.CrawlerError;
@@ -50,45 +51,55 @@ import java.util.Objects;
 public class CrawlerRobot {
 
     /**
-     * All tunable constants for this robot. Set values in {@link Builder} from your
-     * team class (e.g. {@code MyRobot}) — teams should not edit library source files.
+     * All tunable constants for this robot.
+     *
+     * <p>There are <b>no preset values</b> — every constant is {@code 0} until you set it
+     * in the {@link Builder} chain of your own robot class. {@link #validate()} rejects
+     * any config that isn't fully specified, so an unconfigured value fails at build
+     * time instead of silently using a library default.</p>
      */
     public static class Config {
-        public double trackWidthIn          = 13.0;
-        public double centerWheelOffsetIn   = 3.5;
-        public double wheelDiameterIn       = 1.37795;
-        public double ticksPerRev           = 2000;
+        public double trackWidth          = 0;
+        public double centerWheelOffset   = 0;
+        public double wheelDiameter       = 0;
+        public double ticksPerRev         = 0;
 
-        public double driveKp    = 0.05;
+        public double driveKp    = 0.0;
         public double driveKi    = 0.0;
         public double driveKd    = 0.0;
-        public double strafeKp   = 0.05;
+        public double strafeKp   = 0.0;
         public double strafeKi   = 0.0;
         public double strafeKd   = 0.0;
-        public double steerP     = 0.03;
+        public double steerP     = 0.0;
         public double steerI     = 0.0;
         public double steerD     = 0.0;
-        public double minPower   = 0.15;
+        public double minPower   = 0.0;
 
-        public double defaultMoveSpeed       = 0.7;
-        public double defaultTurnSpeed       = 0.4;
-        public double followDistanceCm       = 25.4;
-        public double arrivalThresholdCm     = 5.0;
-        public double orbitThresholdCm       = 25.4;
-        public double slowMoveSpeed          = 0.3;
-        public double slowTurnSpeed          = 0.2;
-        public double slowFollowDistanceCm   = 12.7;
-        public double slowDownTurnRadians    = 0.5;
-        public double slowDownTurnAmount     = 0.5;
+        public double defaultMoveSpeed       = 0.0;
+        public double defaultTurnSpeed       = 0.0;
+        public double followDistanceCm       = 0.0;
+        public double arrivalThresholdCm     = 0.0;
+        public double orbitThresholdCm       = 0.0;
+        public double slowMoveSpeed          = 0.0;
+        public double slowTurnSpeed          = 0.0;
+        public double slowFollowDistanceCm   = 0.0;
+        public double slowDownTurnRadians    = 0.0;
+        public double slowDownTurnAmount     = 0.0;
 
-        public double timeoutSecs    = 5.0;
-        public double maxDriveSpeed  = 1.0;
+        public double timeoutSecs    = 0.0;
+        public double maxDriveSpeed  = 0.0;
         /** Heading error scale for path following turn power (radians). */
-        public double turnReferenceRadians = Math.toRadians(30);
+        public double turnReferenceRadians = 0.0;
 
+        /**
+         * Encoder ticks per meter of wheel travel.
+         *
+         * <p>Requires {@link #wheelDiameter} and {@link #ticksPerRev} to be configured
+         * (both are enforced by {@link #validate()}); returns {@code NaN} if they
+         * haven't been set yet.</p>
+         */
         public double ticksPerMeter() {
-            double metersPerRev = wheelDiameterIn * 0.0254 * Math.PI;
-            return metersPerRev > 1e-9 ? ticksPerRev / metersPerRev : 2000.0;
+            return ticksPerRev / (wheelDiameter * 0.0254 * Math.PI);
         }
 
         public double ticksPerCm() {
@@ -100,16 +111,16 @@ public class CrawlerRobot {
         // -------------------------------------------------------------------
 
         /** Sets the odometry wheel diameter in inches. */
-        public Config setWheelDiameterIn(double value)      { this.wheelDiameterIn = value; return this; }
+        public Config setWheelDiameter(double value)      { this.wheelDiameter = value; return this; }
 
         /** Sets the odometry encoder ticks per wheel revolution. */
         public Config setTicksPerRev(double value)          { this.ticksPerRev = value; return this; }
 
         /** Sets the track width (left↔right odometry wheel distance) in inches. */
-        public Config setTrackWidthIn(double value)         { this.trackWidthIn = value; return this; }
+        public Config setTrackWidth(double value)         { this.trackWidth = value; return this; }
 
         /** Sets the center-pod offset from robot center in inches (signed — negative is behind center). */
-        public Config setCenterWheelOffsetIn(double value)  { this.centerWheelOffsetIn = value; return this; }
+        public Config setCenterWheelOffset(double value)  { this.centerWheelOffset = value; return this; }
 
         /** Sets the per-leg path-following timeout in seconds. */
         public Config setTimeoutSecs(double value)          { this.timeoutSecs = value; return this; }
@@ -129,16 +140,16 @@ public class CrawlerRobot {
          *
          * <p>Rejects non-finite values (NaN/Infinity), non-positive physical dimensions,
          * thresholds and timeouts, and out-of-range speeds. Signed geometric offsets
-         * such as {@link #centerWheelOffsetIn} may legitimately be negative, so they are
+         * such as {@link #centerWheelOffset} may legitimately be negative, so they are
          * only required to be finite.</p>
          */
         public void validate() {
             List<String> bad = new ArrayList<>();
-            requireFinitePositive(bad, "wheelDiameterIn", wheelDiameterIn);
+            requireFinitePositive(bad, "wheelDiameter", wheelDiameter);
             requireFinitePositive(bad, "ticksPerRev", ticksPerRev);
-            requireFinitePositive(bad, "trackWidthIn", trackWidthIn);
-            if (!Double.isFinite(centerWheelOffsetIn)) {
-                bad.add("centerWheelOffsetIn must be finite, got " + centerWheelOffsetIn);
+            requireFinitePositive(bad, "trackWidth", trackWidth);
+            if (!Double.isFinite(centerWheelOffset)) {
+                bad.add("centerWheelOffsetIn must be finite, got " + centerWheelOffset);
             }
             requireFinitePositive(bad, "timeoutSecs", timeoutSecs);
             requireFinitePositive(bad, "arrivalThresholdCm", arrivalThresholdCm);
@@ -149,9 +160,10 @@ public class CrawlerRobot {
             requireInRange(bad, "defaultTurnSpeed", defaultTurnSpeed, true);
             requireInRange(bad, "maxDriveSpeed", maxDriveSpeed, true);
             requireInRange(bad, "minPower", minPower, false);
-            requireInRange(bad, "slowMoveSpeed", slowMoveSpeed, true);
-            requireInRange(bad, "slowTurnSpeed", slowTurnSpeed, true);
-            requireFinitePositive(bad, "slowFollowDistanceCm", slowFollowDistanceCm);
+            // Slow-down values are optional (0 = not used), so they only need to be sane.
+            requireInRange(bad, "slowMoveSpeed", slowMoveSpeed, false);
+            requireInRange(bad, "slowTurnSpeed", slowTurnSpeed, false);
+            requireFiniteNonNegative(bad, "slowFollowDistanceCm", slowFollowDistanceCm);
             requireFinite(bad, "slowDownTurnRadians", slowDownTurnRadians);
             requireFinite(bad, "slowDownTurnAmount", slowDownTurnAmount);
             requireFinite(bad, "driveKp", driveKp);
@@ -178,6 +190,12 @@ public class CrawlerRobot {
         private static void requireFinite(List<String> bad, String name, double value) {
             if (!Double.isFinite(value)) {
                 bad.add(name + " must be finite, got " + value);
+            }
+        }
+
+        private static void requireFiniteNonNegative(List<String> bad, String name, double value) {
+            if (!Double.isFinite(value) || value < 0) {
+                bad.add(name + " must be finite and >= 0, got " + value);
             }
         }
 
@@ -354,6 +372,14 @@ public class CrawlerRobot {
                         this.backRight,
                         builder.config
                 );
+            case Simulated:
+                return new SimulatedLocaliser(
+                        this.frontLeft,
+                        this.frontRight,
+                        this.backLeft,
+                        this.backRight,
+                        builder.config
+                );
             case DevLocaliser:
             default:
                 return new DevLocaliser();
@@ -479,6 +505,7 @@ public class CrawlerRobot {
         TwoDeadWheel,
         ThreeDeadWheel,
         Pinpoint,
+        Simulated,
         DevLocaliser
     }
 
@@ -506,6 +533,8 @@ public class CrawlerRobot {
 
     public interface ILocaliserStage {
         IReadyStage withMotorEncoders();
+        /** Simulated mecanum odometry for PC testing — no hardware required. */
+        IReadyStage withSimulatedLocaliser();
         IReadyStage withDevLocaliser();
         IThreeDeadWheelStage withThreeDeadWheels(String left, String right, String center);
         ITwoDeadWheelStage withTwoDeadWheels(String left, String center);
@@ -536,6 +565,7 @@ public class CrawlerRobot {
     }
 
     public interface IReadyStage {
+        IReadyStage setTrackWidth(double trackWidth);
         IReadyStage wheelDiameter(double inches);
         IReadyStage ticksPerRev(double ticks);
         IReadyStage drivePid(double kp, double ki, double kd);
@@ -546,7 +576,13 @@ public class CrawlerRobot {
         IReadyStage arrivalThresholdCm(double cm);
         IReadyStage orbitThresholdCm(double cm);
         IReadyStage timeoutSecs(double seconds);
+        /** Heading-error scale for path-following turn power, in radians (e.g. {@code Math.toRadians(30)}). */
+        IReadyStage turnReferenceRadians(double radians);
         IReadyStage maxDriveSpeed(double speed);
+        /** Optional per-waypoint slow-down speeds (move, turn) and follow distance (cm). 0 = not used. */
+        IReadyStage slowSpeeds(double moveSpeed, double turnSpeed, double followDistanceCm);
+        /** Optional turn slow-down trigger (radians of heading error) and amount. 0 = not used. */
+        IReadyStage slowDownTurn(double radians, double amount);
         IReadyStage withConfig(Config config);
         CrawlerRobot build();
     }
@@ -640,6 +676,12 @@ public class CrawlerRobot {
         }
 
         @Override
+        public Builder withSimulatedLocaliser() {
+            this.localisation = Localisation.Simulated;
+            return this;
+        }
+
+        @Override
         public Builder withDevLocaliser() {
             this.localisation = Localisation.DevLocaliser;
             return this;
@@ -688,14 +730,14 @@ public class CrawlerRobot {
         @Override
         public Builder setTrackWidth(double trackWidth) {
             this.trackWidth = trackWidth;
-            this.config.trackWidthIn = trackWidth;
+            this.config.trackWidth = trackWidth;
             return this;
         }
 
         @Override
         public Builder setCenterWheelOffset(double offset) {
             this.centerWheelOffset = offset;
-            this.config.centerWheelOffsetIn = offset;
+            this.config.centerWheelOffset = offset;
             return this;
         }
 
@@ -704,7 +746,7 @@ public class CrawlerRobot {
         @Override public Builder invertCenterEncoder() { this.centerEncoderInverted = true; return this; }
 
         @Override public Builder wheelDiameter(double inches) {
-            config.wheelDiameterIn = inches; return this;
+            config.wheelDiameter = inches; return this;
         }
         @Override public Builder ticksPerRev(double ticks) {
             config.ticksPerRev = ticks; return this;
@@ -736,8 +778,22 @@ public class CrawlerRobot {
         @Override public Builder timeoutSecs(double seconds) {
             config.timeoutSecs = seconds; return this;
         }
+        @Override public Builder turnReferenceRadians(double radians) {
+            config.turnReferenceRadians = radians; return this;
+        }
         @Override public Builder maxDriveSpeed(double speed) {
             config.maxDriveSpeed = speed; return this;
+        }
+        @Override public Builder slowSpeeds(double moveSpeed, double turnSpeed, double followDistanceCm) {
+            config.slowMoveSpeed       = moveSpeed;
+            config.slowTurnSpeed       = turnSpeed;
+            config.slowFollowDistanceCm = followDistanceCm;
+            return this;
+        }
+        @Override public Builder slowDownTurn(double radians, double amount) {
+            config.slowDownTurnRadians = radians;
+            config.slowDownTurnAmount  = amount;
+            return this;
         }
 
         /**
@@ -749,6 +805,10 @@ public class CrawlerRobot {
         @Override
         public IReadyStage withConfig(Config config) {
             this.config = Objects.requireNonNull(config, "config cannot be null");
+            // Keep the builder-level geometry fields in sync — the robot snapshots them
+            // directly, while localizers read them from the config.
+            this.trackWidth        = config.trackWidth;
+            this.centerWheelOffset = config.centerWheelOffset;
             return this;
         }
 
@@ -772,33 +832,39 @@ public class CrawlerRobot {
                 // Geometry comes from the (possibly user-supplied) config; the center
                 // pod offset is a signed distance, so only track width is range-checked
                 // here — non-finite offsets are rejected by config.validate().
-                if (config.trackWidthIn <= 0) {
+                if (config.trackWidth <= 0) {
                     CrawlerErrors.throwError(
                             CrawlerError.SETUP_LOCALIZER_CONFIG_MISSING, "three-dead-wheel");
                 }
-                if (config.wheelDiameterIn <= 0 || config.ticksPerRev <= 0) {
+                if (config.wheelDiameter <= 0 || config.ticksPerRev <= 0) {
                     CrawlerErrors.throwError(
                             CrawlerError.SETUP_LOCALIZER_CONFIG_MISSING, "three-dead-wheel");
                 }
             }
             if (localisation == Localisation.TwoDeadWheel) {
-                if (config.trackWidthIn <= 0) {
+                if (config.trackWidth <= 0) {
                     CrawlerErrors.throwError(
                             CrawlerError.SETUP_LOCALIZER_CONFIG_MISSING, "two-dead-wheel");
                 }
-                if (config.wheelDiameterIn <= 0 || config.ticksPerRev <= 0) {
+                if (config.wheelDiameter <= 0 || config.ticksPerRev <= 0) {
                     CrawlerErrors.throwError(
                             CrawlerError.SETUP_LOCALIZER_CONFIG_MISSING, "two-dead-wheel");
                 }
             }
             if (localisation == Localisation.MotorEncoder
-                    && (config.wheelDiameterIn <= 0 || config.ticksPerRev <= 0)) {
+                    && (config.wheelDiameter <= 0 || config.ticksPerRev <= 0)) {
                 CrawlerErrors.throwError(
                         CrawlerError.SETUP_LOCALIZER_CONFIG_MISSING, "motor-encoder");
+            }
+            if (localisation == Localisation.Simulated
+                    && (config.wheelDiameter <= 0 || config.ticksPerRev <= 0)) {
+                CrawlerErrors.throwError(
+                        CrawlerError.SETUP_LOCALIZER_CONFIG_MISSING, "simulated");
             }
             if (localisation == Localisation.Pinpoint && pinpointDeviceName == null) {
                 CrawlerErrors.throwError(CrawlerError.SETUP_PINPOINT_CONFIG_MISSING);
             }
+
             if (localisation == null) {
                 throw new IllegalStateException(
                         "No localisation method configured. Call withMotorEncoders(), withTwoDeadWheels(), "

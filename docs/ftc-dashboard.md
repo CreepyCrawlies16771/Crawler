@@ -27,24 +27,28 @@ http://192.168.43.1:8080/dash
 
 ## The Crawler Tuner config panel
 
-When the **Crawler Tuner** is running, the Dashboard's left panel shows a **`Crawler Tuner`** group. Every field is a live value — click it, type a new number, press **Enter**, and the tuner picks it up on the next loop and rebuilds the robot.
+When the **Crawler Tuner** is running, the Dashboard's left panel shows a **`Crawler Tuner`** group. Every field is a live value — click it, type a new number, press **Enter**, and the tuner picks it up on the next loop and rebuilds the robot. The fields are **seeded from your robot's builder** when the tuner starts — there are no hard-coded presets.
 
 ```
 Crawler Tuner
-├── trackWidthIn           13.0
-├── centerWheelOffsetIn     3.5
-├── wheelDiameterIn       1.37795
-├── ticksPerRev            2000
+├── trackWidthIn            (from .setTrackWidth)
+├── centerWheelOffsetIn     (from .setCenterWheelOffset)
+├── wheelDiameterIn         (from .wheelDiameter)
+├── ticksPerRev             (from .ticksPerRev)
 ├── driveKp / driveKi / driveKd
 ├── strafeKp / strafeKi / strafeKd
 ├── steerP / steerI / steerD
-├── minPower               0.15
+├── minPower                (from .minPower)
 ├── moveSpeed / turnSpeed / followDistanceCm
 ├── arrivalThresholdCm / orbitThresholdCm
-├── timeoutSecs / maxDriveSpeed
+├── timeoutSecs / maxDriveSpeed / turnReferenceRadians
+├── slowMoveSpeed / slowTurnSpeed / slowFollowDistanceCm    (only if you use slow-down)
+├── slowDownTurnRadians / slowDownTurnAmount                (only if you use slow-down)
 ```
 
-**How it works:** the tuner's `TuningConfig` class is annotated with `@Config("Crawler Tuner")`, and all its fields are `public static`. The Dashboard edits those fields directly; the tuner re-reads them every loop. Whatever you type in the browser is exactly what the gamepad D-pad would adjust — they stay in sync.
+**How it works:** the tuner's `TuningConfig` class is annotated with `@Config("Crawler Tuner")`, and all its fields are `public static`. When the tuner starts it copies your robot's builder config into those fields (via `TuningConfig.seed(...)`); the Dashboard edits them directly from then on, and the tuner re-reads them every loop. Whatever you type in the browser is exactly what the gamepad D-pad would adjust — they stay in sync.
+
+**Which values may be 0:** the PID **I/D** terms are normally 0 (add them only if you need them), and the `slow*` values are 0 unless you use `Waypoint.slow(...)`. But if a **P gain** (`driveKp`, `strafeKp`, `steerP`) is still 0, your robot won't move under PID control — the tuner prints a ⚠ warning on the Driver Station until you run Step 5 (or set them in your builder).
 
 **Example — tuning Drive Kp without touching the gamepad:**
 
@@ -91,7 +95,7 @@ Add the `drawRobot(...)` snippet above to your own OpMode's loop, run any autono
 - Square drifts sideways → center offset (Step 4)
 - Path cuts corners → lower `followDistanceCm` in the tuner, re-test
 
-Then copy the final values into `MyRobot.java` (Square snippet) and rebuild.
+Then copy the final values into your robot class (Square snippet) and rebuild.
 
 ## Troubleshooting Dashboard
 
@@ -102,9 +106,9 @@ Then copy the final values into `MyRobot.java` (Square snippet) and rebuild.
 | No robot drawn | Odometry not updating | Check encoder pods; run Smoke Test |
 | `Crawler Tuner` group missing | Tuner not running | Press Play on **Crawler Tuner** |
 | Typed value ignored | Field not committed | Press **Enter** in the field |
-| Values reset after app restart | Static fields are in-memory | Paste the Square snippet into `MyRobot.java` |
+| Values reset after app restart | Static fields are in-memory | Paste the Square snippet into your robot class |
 
-> ⚠️ **Dashboard values are not permanent.** They live in the tuner's static fields for the lifetime of the app. After each session, paste the builder lines from **Square** (or Step 7) into `MyRobot.builder()` and rebuild.
+> ⚠️ **Dashboard values are not permanent.** They live in the tuner's static fields for the lifetime of the app. After each session, paste the builder lines from **Square** (or Step 7) into your robot's `builder()` and rebuild.
 
 ---
 

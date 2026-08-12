@@ -65,7 +65,7 @@ public class DashboardFieldViewUtils {
         double[] xPoints = new double[4];
         double[] yPoints = new double[4];
 
-        // Corners of an 18x18 inch square relative to the center
+        // Corners of a 18x18 inch square relative to the center
         double[] xOffsets = {ROBOT_RADIUS, -ROBOT_RADIUS, -ROBOT_RADIUS, ROBOT_RADIUS};
         double[] yOffsets = {ROBOT_RADIUS, ROBOT_RADIUS, -ROBOT_RADIUS, -ROBOT_RADIUS};
 

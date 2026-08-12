@@ -56,6 +56,7 @@ TeamCode/src/main/java/org/firstinspires/ftc/teamcode/
 │   │   │   ├── TwoWheelLocaliser.java
 │   │   │   ├── PinpointLocaliser.java
 │   │   │   ├── MotorEncoderLocaliser.java
+│   │   │   ├── SimulatedLocaliser.java   ← sim odometry for JVM integration tests
 │   │   │   └── DevLocaliser.java
 │   │   └── utils/
 │   │       ├── Waypoint.java         ← builder: at(x,y,config).speed().slow().onReach()…
@@ -76,7 +77,7 @@ TeamCode/src/main/java/org/firstinspires/ftc/teamcode/
 │   │   ├── TuningConfig.java         ← @Config("Crawler Tuner") live values
 │   │   ├── TuningSession.java        ← 7-step guided session
 │   │   ├── TuningPidRunner.java      ← runs PID tests through RobotOrientedDrive
-│   │   ├── TuningRobotFactory.java   ← interface: build robot from live Config
+│   │   ├── TuningRobotFactory.java   ← interface: build the tuning robot from your registered robot
 │   │   ├── TuningTelemetry.java      ← Driver Station + Dashboard telemetry
 │   │   ├── TuningActiveCheck.java    ← interface: is the OpMode still running?
 │   │   ├── TuningDashboard.java      ← draws robot on the Dashboard field view
@@ -144,7 +145,7 @@ Key public surface of `CrawlerRobot`:
 | Drive motors | `public final MotorEx frontLeft, frontRight, backLeft, backRight` | `MotorEx.set(double)` |
 | IMU | `public final IMU imu` | |
 | Localiser | `public final CrawlerLocaliser localiser` | |
-| Localisation | `public final Localisation localisation` | enum: `MotorEncoder`, `TwoDeadWheel`, `ThreeDeadWheel`, `Pinpoint`, `DevLocaliser` |
+| Localisation | `public final Localisation localisation` | enum: `MotorEncoder`, `TwoDeadWheel`, `ThreeDeadWheel`, `Pinpoint`, `Simulated`, `DevLocaliser` |
 | Config | `public final Config config` | all tuned numbers |
 | `drive` | `void drive(double forward, double strafe, double rotate)` | robot frame; clamped to `maxDriveSpeed` |
 | `driveFieldRelative` | `void driveFieldRelative(double forward, double strafe, double rotate)` | field frame |
@@ -169,6 +170,7 @@ The builder picks the implementation:
 | `.withTwoDeadWheels("l","c")` | `TwoWheelLocaliser` | two pods |
 | `.withPinpoint("odo")` | `PinpointLocaliser` | GoBILDA Pinpoint |
 | `.withMotorEncoders()` | `MotorEncoderLocaliser` | drive motor encoders |
+| `.withSimulatedLocaliser()` | `SimulatedLocaliser` | sim mecanum odometry (JVM integration tests) |
 | `.withDevLocaliser()` | `DevLocaliser` | zero pose (dev/tests only) |
 
 All poses are normalized to **centimeters** by the library (e.g. `PinpointLocaliser`
@@ -228,14 +230,20 @@ public class ManualAdjust extends ROMovementEngine {
 ### Layer 4 — The tuner
 
 `TuningConfig` is a `@Config("Crawler Tuner")` class of `public static` fields — FTC
-Dashboard edits them live. `TuningSession` rebuilds the tuning robot (via a
-`TuningRobotFactory`) whenever a value changes and walks 7 steps: Motors → Encoders →
-Track width → Center offset → PID → Auto path → Finish. The PID tests run through the
-**real** `RobotOrientedDrive` engine, so tuned gains behave identically in a match.
-The OpMode lives in team code:
+Dashboard edits them live. `TuningSession` seeds those fields from the robot's builder
+(no presets), rebuilds the tuning robot (via a `TuningRobotFactory`) whenever a value
+changes, and walks 7 steps: Motors → Encoders → Track width → Center offset → PID →
+Auto path → Finish. The PID tests run through the **real** `RobotOrientedDrive` engine,
+so tuned gains behave identically in a match. The OpMode lives in team code and builds
+whatever robot is registered with `CrawlerRobotRegistry`:
 
 ```java
-TuningRobotFactory factory = config -> MyRobot.buildTuned(hardwareMap, config);
+TuningRobotFactory factory = new TuningRobotFactory() {
+    public CrawlerRobot create() { return CrawlerRobotRegistry.create(hardwareMap); }
+    public CrawlerRobot create(CrawlerRobot.Config config) {
+        return CrawlerRobotRegistry.create(hardwareMap, config);
+    }
+};
 TuningSession session = new TuningSession(factory, telemetry, gamepad1, () -> opModeIsActive());
 ```
 
@@ -260,11 +268,12 @@ two ways:
    `.maxDriveSpeed(p)`. The tuned numbers are **inline in the builder chain** — the
    Crawler Tuner prints matching builder lines to paste there.
 2. **Live** — the tuner's `TuningConfig` mirrors the same fields into the Dashboard
-   (`http://<robot-ip>:8080/dash` → `Crawler Tuner` panel). The tuner rebuilds the
-   robot via `MyRobot.buildTuned(hwMap, config)` when a value changes.
+   (`http://<robot-ip>:8080/dash` → `Crawler Tuner` panel), seeded from the robot's
+   builder when the tuner starts. The tuner rebuilds the robot via the registered
+   provider (`CrawlerRobotRegistry`) when a value changes.
 
-The two slow-mode presets (`slowMoveSpeed`, `slowTurnSpeed`, `slowFollowDistanceCm`)
-are only settable as `Config` fields — the builder does not expose them yet.
+The slow-mode values (`slowMoveSpeed`, `slowTurnSpeed`, `slowFollowDistanceCm`, …)
+are set from the builder with `.slowSpeeds(...)` / `.slowDownTurn(...)` (0 = not used).
 
 ## Data Flow
 
@@ -290,8 +299,8 @@ OpMode (LinearOpMode)
 1. **Edit only `TeamscodeNotLibrary/`.** Match device names at the top of
    `MyRobot.java` to the Driver Hub configuration.
 2. **Run the Crawler Tuner** → paste the printed builder lines into the tuned section
-   of `MyRobot.builder()` (the tuner rebuilds `MyRobot.builder()` with live values via
-   `MyRobot.buildTuned(...)`, so hardware names never drift).
+   of your robot's `builder()` (the tuner rebuilds your registered robot via
+   `CrawlerRobotRegistry`, so hardware names never drift).
 3. **Validate** — `CrawlerSmokeTest` (2 min) then `CrawlerSystemTest` (TeleOp).
 4. **Write autos** — copy `ExampleAuto.java` (waypoints) and `ManualAdjustExample.java`
    (short PID moves).

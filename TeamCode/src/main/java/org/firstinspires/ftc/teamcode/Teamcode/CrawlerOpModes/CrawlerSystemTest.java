@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.TeamscodeNotLibrary;
+package org.firstinspires.ftc.teamcode.Teamcode.CrawlerOpModes;
 
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -6,12 +6,17 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.Crawler.FieldOrient.FOFollower;
+import org.firstinspires.ftc.teamcode.Crawler.core.Robot.CrawlerRobot;
+import org.firstinspires.ftc.teamcode.Crawler.core.Robot.CrawlerRobotRegistry;
 import org.firstinspires.ftc.teamcode.Crawler.core.utils.Waypoint;
 
 import java.util.Arrays;
 
 /**
- * Interactive validation for a tuned {@link MyRobot} (~15–20 min with Crawler Tuner).
+ * Interactive validation for your tuned robot (~15–20 min with Crawler Tuner).
+ *
+ * <p>Builds whatever robot you registered with {@link CrawlerRobotRegistry} — no hard-coded
+ * example class.</p>
  *
  * <p>Circle = next test, Square = show pass criteria, X = previous.</p>
  */
@@ -38,7 +43,7 @@ public class CrawlerSystemTest extends LinearOpMode {
     private static final double MOVE_TARGET_CM = 50.0;
     private static final double MOVE_POWER = 0.4;
 
-    private MyRobot robot;
+    private CrawlerRobot robot;
     private Test test = Test.TELEOP_DRIVE;
     private boolean testRunning;
     private String result = "";
@@ -54,7 +59,15 @@ public class CrawlerSystemTest extends LinearOpMode {
         telemetry.addLine("Run after Crawler Tuner + Smoke Test");
         telemetry.update();
 
-        robot = new MyRobot(hardwareMap);
+        try {
+            robot = CrawlerRobotRegistry.create(hardwareMap);
+        } catch (Exception e) {
+            telemetry.addLine("FAIL: could not build your robot.");
+            telemetry.addLine(e.getMessage());
+            telemetry.update();
+            return;
+        }
+
         waitForStart();
 
         while (opModeIsActive()) {
@@ -142,7 +155,7 @@ public class CrawlerSystemTest extends LinearOpMode {
                 robot.getPose().getY() - start.getY());
         double errPct = Math.abs(finalD - MOVE_TARGET_CM) / MOVE_TARGET_CM * 100;
         if (errPct < 15) return "PASS: " + String.format("%.1f cm (%.0f%% err)", finalD, errPct);
-        return "CHECK: " + String.format("%.1f cm (%.0f%% err) — tweak MyRobot builder", finalD, errPct);
+        return "CHECK: " + String.format("%.1f cm (%.0f%% err) — tweak your robot's builder", finalD, errPct);
     }
 
     private void runPathPrompt() throws InterruptedException {
@@ -171,9 +184,9 @@ public class CrawlerSystemTest extends LinearOpMode {
     }
 
     private void runConfigReview() {
-        telemetry.addData("trackWidth in", robot.config.trackWidthIn);
-        telemetry.addData("centerOffset in", robot.config.centerWheelOffsetIn);
-        telemetry.addData("wheelDiameter in", robot.config.wheelDiameterIn);
+        telemetry.addData("trackWidth in", robot.config.trackWidth);
+        telemetry.addData("centerOffset in", robot.config.centerWheelOffset);
+        telemetry.addData("wheelDiameter in", robot.config.wheelDiameter);
         telemetry.addData("ticksPerRev", robot.config.ticksPerRev);
         telemetry.addData("driveKp", robot.config.driveKp);
         telemetry.addData("moveSpeed", robot.config.defaultMoveSpeed);
@@ -198,7 +211,7 @@ public class CrawlerSystemTest extends LinearOpMode {
             case PATH_SQUARE:
                 return "PASS if path completes and ends near start.";
             case CONFIG_REVIEW:
-                return "Values should match the tuned lines in MyRobot.builder().";
+                return "Values should match the tuned lines in your robot's builder().";
             default:
                 return "Run Example Auto on the field.";
         }

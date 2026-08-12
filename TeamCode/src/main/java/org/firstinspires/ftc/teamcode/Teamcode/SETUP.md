@@ -1,16 +1,17 @@
 # Crawler — 30 minute robot setup
 
-Teams only edit files in this folder (`TeamscodeNotLibrary`). Do not modify the `Crawler` library package.
+Teams only edit files in this folder (`Teamcode`). Do not modify the `Crawler` library package.
 
 ## 1. Robot Configuration (5 min)
 
 1. Open the FTC Robot Configuration.
 2. Name devices to match the constants at the top of `MyRobot.java` (or change those strings to match your config).
 3. Required: four drive motors, IMU, three odometry pods (`enc_l`, `enc_r`, `enc_c`).
+4. **Register your robot** with the tooling — copy the static block from the top of `MyRobot.java` (`CrawlerRobotRegistry.setProvider(...)`) into your own robot class, then run your TeleOp once so the tooling can build it.
 
 ## 2. Crawler Tuner (15–20 min)
 
-1. Nothing to sync — the tuner rebuilds `MyRobot.builder()` with live values (`MyRobot.buildTuned`).
+1. Nothing to sync — the tuner rebuilds your registered robot with live values (seeded from your builder).
 2. On the Driver Station, run **Crawler Tuner**.
 3. Complete steps 1–7 (Circle = next, Square = copy code).
 4. Paste the printed builder lines into the tuned section of `MyRobot.builder()`.
