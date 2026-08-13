@@ -17,7 +17,8 @@ public abstract class ROMovementEngine extends LinearOpMode {
     protected CrawlerRobot robot;
     protected RobotOrientedDrive movement;
 
-    /** Construct and return your configured robot (typically {@code new MyRobot(hwMap)}). */
+    /** Construct and return your configured robot — any class extending {@link CrawlerRobot}
+     *  (the shipped example returns {@code new MyRobot(hwMap)}). */
     protected abstract CrawlerRobot buildRobot(HardwareMap hwMap);
 
   public abstract void runPath() throws InterruptedException;

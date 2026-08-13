@@ -175,6 +175,10 @@ public class RobotMovement {
                              double preferredAngle,
                              double turnSpeed) {
 
+        // Refresh the cached world pose from the live localiser, so multi-leg paths
+        // aim from the robot's CURRENT position — not the origin it started at.
+        updatePose();
+
         double distanceToTarget = Math.hypot(x - worldX, y - worldY);
         double absAngleToTarget = Math.atan2(y - worldY, x - worldX);
         double relativeAngle    = CrawlerMath.wrapAngle(absAngleToTarget - worldHeading);
@@ -202,7 +206,10 @@ public class RobotMovement {
 
         // FIX: CRITICAL — actually apply the computed powers to the robot!
         // Previously, these powers were calculated but never sent to the drivetrain.
-        robot.driveFieldRelative(movementYPower, movementXPower, turnPower);
+        // movementXPower is the component along the robot's heading (forward) and
+        // movementYPower the lateral (strafe) component — do NOT swap them, or a
+        // target dead ahead makes the robot drive sideways.
+        robot.driveFieldRelative(movementXPower, movementYPower, turnPower);
     }
 
     // -----------------------------------------------------------------------

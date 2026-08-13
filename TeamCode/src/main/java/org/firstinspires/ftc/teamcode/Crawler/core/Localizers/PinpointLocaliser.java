@@ -8,6 +8,8 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import org.firstinspires.ftc.teamcode.Crawler.core.errors.CrawlerError;
+import org.firstinspires.ftc.teamcode.Crawler.core.errors.CrawlerErrors;
 
 public class PinpointLocaliser implements CrawlerLocaliser {
     private final GoBildaPinpointDriver pinpoint;
@@ -20,7 +22,12 @@ public class PinpointLocaliser implements CrawlerLocaliser {
                              GoBildaPinpointDriver.EncoderDirection xDirection,
                              GoBildaPinpointDriver.EncoderDirection yDirection) {
 
-        pinpoint = hwMap.get(GoBildaPinpointDriver.class, deviceName);
+        try {
+            pinpoint = hwMap.get(GoBildaPinpointDriver.class, deviceName);
+        } catch (RuntimeException e) {
+            CrawlerErrors.throwError(CrawlerError.SETUP_DEVICE_NOT_FOUND, deviceName);
+            throw new AssertionError("unreachable");
+        }
         this.distanceUnit = distanceUnit;
 
         pinpoint.setOffsets(xOffset, yOffset, distanceUnit);
