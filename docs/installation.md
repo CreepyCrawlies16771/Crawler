@@ -25,7 +25,22 @@ Because it's source, you can read every file, step through it in the debugger, a
 
 > **We're keeping Crawler source-only for now!** - Being able to read, step through, and modify every line is the while point of a learning library. A dependency-based install (Jitpack) may come later as an alternative for teams that just want the pathing math without the source, but source-copy will stay the default way to get started
 
-## Step 1: Get the repo
+## Step 1: Get the code
+
+There are two ways to get Crawler:
+
+### Option A — Starter project (easiest)
+
+The [`starter` branch](https://github.com/CreepyCrawlies16771/Crawler/tree/starter) is a clean, ready-to-build FTC project with Crawler already installed — you only write your robot:
+
+```bash
+git clone -b starter https://github.com/CreepyCrawlies16771/Crawler.git
+cd Crawler
+```
+
+### Option B — The library repo
+
+Clone the full repo and copy the `Crawler` package into your own FTC project:
 
 ```bash
 git clone https://github.com/CreepyCrawlies16771/Crawler.git
@@ -42,7 +57,7 @@ If you don't use git, click **Download ZIP** on the repo page and unzip it.
 
 > ⚠️ **First sync is slow — that's normal.** It can take 10–20+ minutes on a slow connection or a machine that has never built an FTC project before (no cached dependencies). It's downloading the SDK, not a error or a problem. This is excluded form the startup time, since it is out side of our control!.
 
-> 💡 **Already have your own FTC SDK project?** Copy the `Crawler` folder into your `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/` directory, and add these to `TeamCode/build.gradle` if they aren't there already:
+> 💡 **Chose Option B?** Copy the `Crawler` folder into your `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/` directory, and add these to `TeamCode/build.gradle` if they aren't there already:
 
 ```gradle
 dependencies {

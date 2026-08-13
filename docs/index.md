@@ -113,7 +113,7 @@ When you finish, the tuner prints the exact tuned values as **builder lines** to
 
 **New to autonomous?** Follow these pages in order:
 
-1. [Installation](installation.md) — get Crawler into your FTC SDK project
+1. [Installation](installation.md) — get Crawler into a project (new team? clone the **starter project**)
 2. [Setup](setup.md) — create `MyRobot.java` (names + localizer + tuning in one builder) and choose a localizer
 3. [Your First Autonomous](first-auto.md) — drive a real path in 5 minutes
 4. [Your First TeleOp](first-teleop.md) — driver-controlled movement

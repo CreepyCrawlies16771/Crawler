@@ -5,7 +5,8 @@ Static documentation site for **Crawler** — the FTC pathing library for
 deployed to GitHub Pages.
 
 > **This branch (`site`) contains only the docs site.** The library source code
-> lives on the `dev` / `main` branches.
+> lives on the `main` branch, and a clean, ready-to-build FTC project with Crawler
+> installed lives on the `starter` branch.
 
 ## Quick start (local)
 

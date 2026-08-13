@@ -19,7 +19,48 @@ function initializeScripts() {
     initScrollReveal();
     smoothScrollLinks();
     initPaletteKbdLabel();
+    initHardwarePicker();
     if (window.hljs) hljs.highlightAll();
+}
+
+// ============================================
+// HARDWARE PICKER — setup page localizer filter
+// ============================================
+
+function initHardwarePicker() {
+    const picker = document.querySelector('[data-hw-picker]');
+    const select = picker && picker.querySelector('[data-hw-select]');
+    const hint = picker && picker.querySelector('[data-hw-hint]');
+    const panels = document.querySelectorAll('[data-hw-panel]');
+    if (!picker || !select || !panels.length) return;
+
+    const STORAGE_KEY = 'crawler-hw';
+    const labels = {};
+    select.querySelectorAll('option').forEach(function (opt) {
+        labels[opt.value] = opt.textContent.trim();
+    });
+
+    function apply(value) {
+        const v = labels[value] ? value : 'all';
+        select.value = v;
+        panels.forEach(function (panel) {
+            const pv = panel.getAttribute('data-hw-panel');
+            const show = v === 'all' || pv === v;
+            panel.hidden = !show;
+        });
+        if (hint) {
+            hint.textContent = v === 'all'
+                ? 'Pick your hardware to focus the page on just its setup — every localizer\'s full details are below.'
+                : 'You picked: ' + labels[v] + ' — the page now shows only that setup. Switch any time.';
+        }
+        try { localStorage.setItem(STORAGE_KEY, v); } catch (e) { /* ignore */ }
+    }
+
+    select.addEventListener('change', function () { apply(select.value); });
+
+    let saved = null;
+    try { saved = localStorage.getItem(STORAGE_KEY); } catch (e) { /* ignore */ }
+    apply(saved && labels[saved] ? saved : 'all');
 }
 
 // Show Ctrl K on non-Mac keyboards.
