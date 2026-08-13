@@ -14,6 +14,7 @@ function initializeScripts() {
     initSidebarDrawer();
     initFileTree();
     initCodeTabs();
+    initMdTabs();
     initBootSequence();
     initCommandPalette();
     initScrollReveal();
@@ -266,6 +267,73 @@ function initCodeTabs() {
                 if (target) target.classList.toggle('hidden', !active);
             });
         });
+    });
+}
+
+// ============================================
+// DOC TABS — markdown %%%tabs blocks
+// ============================================
+
+function initMdTabs() {
+    const tablists = document.querySelectorAll('.md-tabs');
+    if (!tablists.length) return;
+
+    function activate(btn) {
+        const group = btn.getAttribute('data-md-group');
+        const tablist = btn.closest('.md-tabs');
+        tablist.querySelectorAll('.md-tab-btn').forEach(function (b) {
+            const on = b === btn;
+            b.classList.toggle('active', on);
+            b.setAttribute('aria-selected', on ? 'true' : 'false');
+            b.setAttribute('tabindex', on ? '0' : '-1');
+        });
+        document.querySelectorAll('.md-tab-panel[data-md-group="' + group + '"]')
+            .forEach(function (panel) {
+                panel.classList.toggle('hidden', panel.id !== btn.getAttribute('aria-controls'));
+            });
+        try {
+            history.replaceState(null, '', '#' + btn.getAttribute('aria-controls'));
+        } catch (e) { /* ignore */ }
+    }
+
+    tablists.forEach(function (tablist) {
+        const buttons = Array.prototype.slice.call(tablist.querySelectorAll('.md-tab-btn'));
+        buttons.forEach(function (btn) {
+            btn.addEventListener('click', function () { activate(btn); });
+        });
+
+        // Arrow keys move focus and switch tabs within the strip.
+        tablist.addEventListener('keydown', function (e) {
+            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+            const idx = buttons.indexOf(document.activeElement);
+            if (idx < 0) return;
+            e.preventDefault();
+            const next = buttons[(idx + (e.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length];
+            next.focus();
+            activate(next);
+        });
+    });
+
+    // Deep-link: open the tab whose panel matches the URL hash (e.g. #md-tab-drive-pid).
+    if (location.hash) {
+        const target = document.querySelector(location.hash);
+        if (target && target.classList.contains('md-tab-panel')) {
+            const btn = document.querySelector('.md-tab-btn[aria-controls="' + target.id + '"]');
+            if (btn) activate(btn);
+        }
+    }
+
+    // Clicking an in-page link to a tab panel opens that tab before scrolling.
+    document.addEventListener('click', function (e) {
+        const a = e.target.closest('a[href^="#"]');
+        if (!a) return;
+        const href = a.getAttribute('href');
+        if (!href || href.length < 2) return;
+        const target = document.querySelector(href);
+        if (target && target.classList.contains('md-tab-panel')) {
+            const btn = document.querySelector('.md-tab-btn[aria-controls="' + target.id + '"]');
+            if (btn) activate(btn);
+        }
     });
 }
 

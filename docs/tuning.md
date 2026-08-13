@@ -73,15 +73,17 @@ Crawler Tuner
 
 ## The 7 steps
 
+> 💡 **Each step has its own tab in the [Tuning Guide](tuning-guide.md)** — open the tab for what you're tuning to get the full test mechanics, result reading, and pass criteria.
+
 | # | Step | What you do | Pass looks like |
 |---|---|---|---|
-| 1 | **Motors** | Hold RB / LB / RT / LT — check each wheel spins the right way | All four spin forward |
-| 2 | **Encoders** | D-pad to set wheel diameter & ticks/rev; RB spins the drive wheels | Encoder counts climb smoothly |
-| 3 | **Track width** | D-pad to adjust; RB spins the robot 10 turns | Odometry rotation matches IMU (within 5°) |
-| 4 | **Center offset** | D-pad to adjust; RB strafes 1 m | Heading drift under 2° while strafing |
-| 5 | **PID** | Triangle cycles Drive / Strafe / Turn / Min power; D-pad L/R picks P, I, or D; U/D adjusts; RB runs | Smooth stop at target with minimal overshoot |
-| 6 | **Auto path** | D-pad adjusts move speed; RB runs a 1 m square | Robot returns near its start |
-| 7 | **Finish** | Press Square | Values printed as builder lines for your robot's `builder()` |
+| 1 | **Motors** ([tab](tuning-guide.md#md-tab-motors)) | Hold RB / LB / RT / LT — check each wheel spins the right way | All four spin forward |
+| 2 | **Encoders** ([tab](tuning-guide.md#md-tab-encoders)) | D-pad to set wheel diameter & ticks/rev; RB spins the drive wheels | Encoder counts climb smoothly |
+| 3 | **Track width** ([tab](tuning-guide.md#md-tab-track-width)) | D-pad to adjust; RB spins the robot 10 turns | Odometry rotation matches IMU (within 5°) |
+| 4 | **Center offset** ([tab](tuning-guide.md#md-tab-center-offset)) | D-pad to adjust; RB strafes 1 m | Heading drift under 2° while strafing |
+| 5 | **PID** — [Drive](tuning-guide.md#md-tab-drive-pid) / [Strafe](tuning-guide.md#md-tab-strafe-pid) / [Turn](tuning-guide.md#md-tab-turn-pid) / [Min power](tuning-guide.md#md-tab-min-power) | Triangle cycles the four tests; D-pad L/R picks P, I, or D; U/D adjusts; RB runs | Smooth stop at target with minimal overshoot |
+| 6 | **Auto path** ([tab](tuning-guide.md#md-tab-auto-path)) | D-pad adjusts move speed; RB runs a 1 m square | Robot returns near its start |
+| 7 | **Finish** ([tab](tuning-guide.md#md-tab-finish)) | Press Square | Values printed as builder lines for your robot's `builder()` |
 
 ## Gamepad controls
 
@@ -144,4 +146,4 @@ Your robot feels off? Re-run the tuner and adjust just the affected value in the
 
 ## Next Steps
 
-**[Step-by-Step Guide →](tuning-guide.md)** What to do physically for every step
+**[Step-by-Step Guide →](tuning-guide.md)** Every tuner on its own tab — what it tunes, how the test runs, and how to read the result

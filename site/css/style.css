@@ -757,6 +757,39 @@ hr { border: none; border-top: 1px solid var(--line); margin: 2.2rem 0; }
 .code-pane.hidden { display: none; }
 .code-tabs + .code-pane .code-block { margin-top: 0.4rem; }
 
+/* Doc tabs — markdown %%%tabs blocks (tuning guide) */
+.md-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+  padding: 0 0.2rem 0.55rem;
+  margin-top: 1.8rem;
+}
+.md-tab-btn {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  background: var(--bg-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.md-tab-btn:hover { color: var(--text); border-color: var(--green); }
+.md-tab-btn:focus-visible { outline: 1px solid var(--green); outline-offset: 1px; }
+.md-tab-btn.active { color: var(--green); border-color: var(--green); background: var(--bg-2); }
+.md-tab-btn.active::before { content: '>'; margin-right: 0.4rem; }
+.md-tab-panel { margin-top: 1.1rem; }
+.md-tab-panel.hidden { display: none; }
+.md-tab-panel > :first-child { margin-top: 0; }
+.md-tab-panel h3 { margin-top: 1.7rem; }
+.md-tab-panel h3:first-child { margin-top: 0; }
+
 /* Syntax tokens — flat terminal palette (AA on #0d0d0d) */
 .hljs-comment, .hljs-quote { color: #6b7280; font-style: italic; }
 .hljs-keyword, .hljs-selector-tag, .hljs-literal { color: #4ade80; }

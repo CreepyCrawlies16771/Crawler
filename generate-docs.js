@@ -246,10 +246,79 @@ function languageFromAttrs(attrs) {
   return m ? m[1] : 'code';
 }
 
+// ---------------------------------------------------------------------------
+// Markdown tab blocks — %%%tabs / %%%tab <Title> / %%%endtabs
+//
+// Each %%%tab section is marked-parsed on its own, then the whole block is
+// replaced with a placeholder token (so marked never touches the inner
+// markdown). After the page is parsed the tokens are spliced back in as a
+// tab strip + panels; the downstream code-block / callout / link transforms
+// then apply inside the panels too.
+// ---------------------------------------------------------------------------
+
 let tabRunCounter = 0;
+let mdTabGroupCounter = 0;
+
+/** Extract %%%tabs blocks from raw markdown, replacing them with @@@MDTABS:n@@@ tokens. */
+function extractTabGroups(mdContent) {
+  const groups = [];
+  const md = mdContent.replace(
+    /%%%tabs\s*\r?\n([\s\S]*?)%%%endtabs/g,
+    (whole, inner) => {
+      const group = mdTabGroupCounter++;
+      const parts = inner.split(/^%%%tab\s+(.+?)\s*$/gm);
+      const sections = [];
+      for (let i = 1; i + 1 < parts.length; i += 2) {
+        const title = (parts[i] || '').trim();
+        const content = (parts[i + 1] || '').trim();
+        if (title) sections.push({ title, content });
+      }
+      groups[group] = sections;
+      return `@@MDTABS:${group}@@`;
+    }
+  );
+  return { md, groups };
+}
+
+function slugifyTitle(title, seen) {
+  let slug = title.toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'tab';
+  const base = slug;
+  let n = 2;
+  while (seen.has(slug)) slug = `${base}-${n++}`;
+  seen.add(slug);
+  return slug;
+}
+
+/** Assemble a stored tab group into a tab strip + panels (panel content is markdown). */
+function assembleTabGroup(group, groups) {
+  const sections = groups[group] || [];
+  if (!sections.length) return '';
+  const seen = new Set();
+  const entries = sections.map(s => ({ ...s, slug: slugifyTitle(s.title, seen) }));
+
+  const buttons = entries.map((s, i) =>
+    `<button type="button" class="md-tab-btn${i === 0 ? ' active' : ''}" role="tab"` +
+    ` aria-selected="${i === 0 ? 'true' : 'false'}" aria-controls="md-tab-${s.slug}"` +
+    ` data-md-group="${group}" tabindex="${i === 0 ? '0' : '-1'}">${escapeHtml(s.title)}</button>`
+  ).join('');
+
+  const panels = entries.map((s, i) =>
+    `<div class="md-tab-panel${i === 0 ? '' : ' hidden'}" id="md-tab-${s.slug}"` +
+    ` role="tabpanel" data-md-group="${group}" data-pane-index="${i}">${marked.parse(s.content)}</div>`
+  ).join('');
+
+  return `<div class="md-tabs" role="tablist" aria-label="Tuner types" data-md-group="${group}">${buttons}</div>${panels}`;
+}
 
 function convertMarkdownToHTML(mdContent) {
-  let htmlContent = marked.parse(mdContent);
+  const { md, groups } = extractTabGroups(mdContent);
+  let htmlContent = marked.parse(md);
+
+  // Splice tab groups back in (strip the <p> wrapper marked adds around the token).
+  htmlContent = htmlContent.replace(/<p>@@MDTABS:(\d+)@@<\/p>/g, (m, g) => assembleTabGroup(+g, groups));
+  htmlContent = htmlContent.replace(/@@MDTABS:(\d+)@@/g, (m, g) => assembleTabGroup(+g, groups));
 
   // Rewrite relative cross-page links (foo.md → foo.html). The markdown
   // sources link to each other with .md so they render on GitHub; the built

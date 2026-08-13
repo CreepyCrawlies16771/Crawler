@@ -1,65 +1,114 @@
 ---
-title: Step-by-Step Tuning Guide
-description: What to do physically for each of the 7 tuner steps, and how to know when it passes
+title: Tuning Guide
+description: Tab-by-tab walkthrough of every Crawler Tuner test — what each one tunes, how to run it, and how to know when it passes
 ---
 
-# Step-by-Step Tuning Guide
+# Tuning Guide
 
-*A walkthrough of every `CrawlerTuner` step — what to do, what to watch, and when to move on.*
+*Every tuner in the Crawler Tuner, tab by tab — what it tunes, how the test runs, and how to read the result.*
 
-Before you start, make sure:
+The **Crawler Tuner** runs **9 tuning tests** that calibrate every number your robot moves with. They appear on-screen as 7 steps; Step 5 (PID) is really four different tests, so this guide splits it into four tabs.
 
-- **No sync needed** — the tuner rebuilds your registered robot with the live values
-- You have a **clear 3×3 m floor space**
-- The battery is charged
-- [FTC Dashboard](ftc-dashboard.md) is open on a laptop on the robot's WiFi (highly recommended)
+> 🔁 **Read the tabs in order (1 → 10).** Odometry first, PID next, paths last. You cannot tune PID against wrong odometry, and you cannot tune paths against an unstable PID loop. Each tab assumes the previous ones passed.
 
-## Control scheme (quick reference)
+Before you start:
+
+- A clear **3×3 m floor space** and a **charged battery** (voltage affects power — tune at competition conditions)
+- [FTC Dashboard](ftc-dashboard.md) open on a laptop on the robot's WiFi (recommended — every value can be typed there)
+- **No sync needed** — the tuner rebuilds your registered robot from the live values
+
+## How to read this page
+
+| Tab | Tuner step | What it tunes |
+|---|---|---|
+| [Motors](#md-tab-motors) | 1 | Wheel directions |
+| [Encoders](#md-tab-encoders) | 2 | Wheel diameter + ticks per rev |
+| [Track width](#md-tab-track-width) | 3 | Parallel odometry pod spacing |
+| [Center offset](#md-tab-center-offset) | 4 | Center pod position |
+| [Drive PID](#md-tab-drive-pid) | 5 | Forward/back gains |
+| [Strafe PID](#md-tab-strafe-pid) | 5 | Lateral gains |
+| [Turn PID](#md-tab-turn-pid) | 5 | Heading gains |
+| [Min power](#md-tab-min-power) | 5 | Friction deadband |
+| [Auto path](#md-tab-auto-path) | 6 | Path defaults (speed + look-ahead) |
+| [Finish](#md-tab-finish) | 7 | Copy the tuned values into your robot |
+
+Every tab follows the same shape: **what it tunes → the test → read the result → pass → tips**.
+
+## Controls (quick reference)
 
 | Button | Action |
 |---|---|
 | **RB** | Run the current test |
 | **D-pad ↑ / ↓** | Increase / decrease the current value |
-| **D-pad ← / →** | PID step: choose the term (P → I → D) |
-| **Triangle** | PID step: next test (Drive → Strafe → Turn → Min power) |
+| **D-pad ← / →** | Pick a term (PID tabs: P → I → D) |
+| **Triangle** | PID tab: next test (Drive → Strafe → Turn → Min power) |
 | **X** | Back a step |
-| **Circle** | Accept step, move on |
+| **Circle** | Accept this step, move on |
 | **Square** | Toggle the builder snippet for your robot |
 
-Values can also be typed directly into the **FTC Dashboard → Crawler Tuner** panel — both inputs stay in sync.
+Everything you can do with the gamepad you can also type into **FTC Dashboard → Crawler Tuner** — the two stay in sync.
 
 ---
 
-## Step 1 · Motors
+%%%tabs
+%%%tab Motors
 
-**Purpose:** confirm every wheel spins the correct direction before trusting odometry.
+### What it tunes
 
-**What to do:**
+Which direction each drive wheel spins. There is **no config value** here — the fix is wiring or an inversion flag on the motor in `MyRobot.builder()`.
 
-- Place the robot on the floor with clearance
-- **RB** → front-left spins · **LB** → front-right · **RT** → back-left · **LT** → back-right
+### The test
 
-**Pass:** each wheel spins **forward** (the direction the robot drives). If any wheel is reversed, add `.invertFrontLeft()` / `.invertFrontRight()` / `.invertBackLeft()` / `.invertBackRight()` to that motor in `MyRobot.java`, rebuild, and re-run.
+Place the robot with clearance, then hold one button per wheel:
 
-> ⚠️ **Don't continue with a backwards motor.** Every later step will be garbage. Fix it now.
+| Button | Wheel | Power |
+|---|---|---|
+| **RB** | Front left | 0.5 |
+| **LB** | Front right | 0.5 |
+| **RT** | Back left | proportional to trigger |
+| **LT** | Back right | proportional to trigger |
 
----
+### Read the result
 
-## Step 2 · Encoders (wheel diameter & ticks/rev)
+Every wheel should spin **forward** — the direction the robot drives.
 
-**Purpose:** make odometry distances match reality. Odometry converts **ticks → distance** using:
+### Pass
+
+All four wheels spin forward.
+
+### Fix a reversed wheel
+
+If a wheel spins backward, add the matching inverter to that motor in `MyRobot.builder()`, rebuild, and re-run:
+
+```java
+.invertFrontLeft()    // or invertFrontRight() / invertBackLeft() / invertBackRight()
+```
+
+> ⚠️ **Don't continue with a backwards motor.** Every later step reads odometry, and a reversed drive wheel makes all of it garbage. Fix it now.
+
+%%%tab Encoders
+
+### What it tunes
+
+`wheelDiameterIn` and `ticksPerRev` — the two numbers that convert **encoder ticks → distance**:
 
 ```
 distance = ticks / (ticksPerRev / (wheelDiameterIn × π × 0.0254))   // meters
 ```
 
-**What to do:**
+Get these wrong and every distance is off by the same ratio: drive 90 cm when told 100, stop short of every waypoint.
+
+### The test
 
 - **D-pad ↑ / ↓** — wheel diameter (inches, 0.01 steps)
 - **D-pad ← / →** — ticks per revolution (50 steps)
-- **RB** — spin the drive wheels and watch the three encoder tick counts climb
+- **RB** — spins the drive wheels; the **Left / Right / Center** encoder tick counts climb live on the Driver Station
 
-**Known values:**
+### Read the result
+
+Drive (or push) the robot a **measured distance** — a tape measure, not your eyes. Compare the odometry distance against reality.
+
+Known values to start from:
 
 | Wheel | Diameter (in) |
 |---|---|
@@ -73,121 +122,258 @@ distance = ticks / (ticksPerRev / (wheelDiameterIn × π × 0.0254))   // meters
 | REV HD Hex (built-in motor encoders) | 560 |
 | REV through-bore / shaft encoders | 8192 |
 
-**Pass:** after a known-distance drive (tape measure!), the odometry distance matches within ~2%. If it's consistently short by 10%, increase `wheelDiameterIn` by 10%.
+### Pass
 
----
+Odometry distance matches the tape measure within **~2%**.
 
-## Step 3 · Track width
+### Tips
 
-**Purpose:** the distance between the two parallel odometry wheels controls how odometry converts wheel rotation into heading change. Wrong → the robot "spins" in its own position estimate and drifts sideways.
+- Consistently **short** by 10%? Increase `wheelDiameterIn` by 10%. Consistently **long**? Decrease it.
+- Type the exact measured diameter into the Dashboard instead of nudging with the D-pad — it's faster and precise.
 
-**What to do:**
+%%%tab Track width
 
-- Clear a circle of space
-- **D-pad ↑ / ↓** — adjust `trackWidthIn` (inches)
-- **RB** — the robot spins **10 full rotations** in place; the tuner compares the odometry heading change against the IMU
+### What it tunes
 
-**How to interpret the result:**
+`trackWidthIn` — the **center-to-center distance between the two parallel odometry wheels**. This one value controls how wheel rotation turns into heading change. Wrong, and the robot appears to "spin" in its own position estimate and drifts sideways going straight.
 
-- Message says **"Track width OK"** → within 5°, move on
+### The test
+
+- **D-pad ↑ / ↓** — adjust `trackWidthIn` (inches, 0.1 steps)
+- **RB** — the robot spins **10 full rotations** (3600°) in place at 0.3 power; the tuner compares the odometry heading change against the IMU
+
+The robot is drawn live on the Dashboard field view while it spins.
+
+### Read the result
+
+- **"Track width OK"** → the two headings agree within 5°, move on.
 - Otherwise the status shows the drift in degrees:
-  - Odomometry **over-rotates** (odom heading > IMU) → **decrease** track width
-  - Odomometry **under-rotates** (odom heading < IMU) → **increase** track width
+  - Odometry **over-rotates** (odom heading > IMU) → **decrease** track width
+  - Odometry **under-rotates** (odom heading < IMU) → **increase** track width
+- If the two headings go **opposite directions**, a pod encoder is wired backwards — check it before tuning further.
 
-**Tip:** `trackWidthIn` is a *physical* measurement (center-to-center of the two parallel pods) — measure it with a ruler first, then fine-tune.
+### Pass
 
----
+Odom and IMU headings within **5°** after ten turns.
 
-## Step 4 · Center offset
+### Tips
 
-**Purpose:** how far forward of the robot's center the **perpendicular** (center) odometry wheel sits. Wrong → the robot appears to rotate while it strafes.
+`trackWidthIn` is a *physical* measurement — measure pod-center to pod-center with a ruler first, then fine-tune from the spin result. Change by 0.1" and re-run; the drift tells you which way to go.
 
-**What to do:**
+%%%tab Center offset
 
-- **D-pad ↑ / ↓** — adjust `centerWheelOffsetIn`
-- **RB** — the robot strafes **1 meter**; the tuner watches heading drift
+### What it tunes
 
-**How to interpret:**
+`centerWheelOffsetIn` — how far **forward of the robot's center** the perpendicular (center) odometry wheel sits. Wrong, and the robot appears to rotate while it strafes.
 
-- Drift **< 2°** → "Center offset OK"
-- Heading drifts **counterclockwise** during a rightward strafe → **increase** offset; **clockwise** → **decrease**
+### The test
 
-**Tip:** sign conventions can be counterintuitive. Change it by 0.5" at a time and watch which direction the drift moves.
+- **D-pad ↑ / ↓** — adjust `centerWheelOffsetIn` (inches, 0.1 steps)
+- **RB** — the robot **strafes 1 meter** at 0.5 power; the tuner measures heading drift the whole way
 
----
+### Read the result
 
-## Step 5 · PID (drive / strafe / turn / min power)
+- Drift **< 2°** → **"Center offset OK"**, move on.
+- Heading drifts **counterclockwise** during a rightward strafe → **increase** the offset; **clockwise** → **decrease** it.
 
-**Purpose:** tune the closed-loop gains so the robot stops exactly on target without oscillating.
+### Pass
 
-> 💡 **These tests run through the real engine** — the tuner calls the same `RobotOrientedDrive.drivePID` / `strafePID` / `turnPID` methods your autos use, so the gains you settle on behave identically in a match. While a test runs, the robot is drawn live on the [FTC Dashboard](ftc-dashboard.md) field view and the telemetry panel streams error, power, and the live P/I/D terms.
+Heading drift under **2°** across the 1 m strafe.
 
-**Controls inside this step:**
+### Tips
 
-- **Triangle** cycles: `Drive → Strafe → Turn → Min power`
-- **D-pad ← / →** picks the term: **P → I → D**
-- **D-pad ↑ / ↓** adjusts the selected term
-- **RB** runs the test
+Sign conventions are counterintuitive — change by **0.5" at a time** and watch *which way* the drift moves. If strafing drifts one way and reversing strafe drifts the other, the offset sign is flipped entirely.
 
-**Drive & Strafe tests:** the robot drives / strafes 100 cm and stops. Gains are per **meter** of error.
+%%%tab Drive PID
 
-**Turn test:** the robot turns 90° in place. Gains are per **degree** of error.
+### What it tunes
 
-### Tuning P (proportional)
+`driveKp`, `driveKi`, `driveKd` — the closed-loop gains on **forward distance error**, per **meter**.
+
+### The test
+
+- **Triangle** until the test reads **Drive**
+- **D-pad ← / →** — pick the term: **P → I → D**
+- **D-pad ↑ / ↓** — adjust (P step 0.01, I step 0.001, D step 0.01)
+- **RB** — drives **100 cm** and stops, holding the starting heading
+
+> 💡 **This runs through the real engine.** The tuner calls the exact same `RobotOrientedDrive.drivePID(...)` your autos use — not a simplified copy — so tuned gains behave identically in a match. While it runs, telemetry streams **Error (cm), Power**, and the live **P / I / D** terms, and the robot is drawn on the Dashboard field view.
+
+### Read the result
 
 | Symptom | Fix |
 |---|---|
-| Never reaches the target (stops short) | **Increase** P |
-| Overshoots and oscillates | **Decrease** P |
+| Never reaches the target (stops short) | **Increase P** |
+| Overshoots and oscillates | **Decrease P** |
 | Moves smoothly, stops gently | Keep it |
+| Stops a couple of cm short every time | Add a little **I** |
+| Wobbles around the target | Add **D** |
 
-Start with the defaults (`0.05` drive/strafe, `0.03` steer) and step by `0.01`.
+### Pass
 
-### Tuning I (integral)
+Stops within a few cm of 100 cm without sustained oscillation.
 
-Only needed if the robot consistently stops a couple of cm short and P alone won't fix it. Start at `0.001`, watch for windup (slow drift). The control loops reset the integral when the error changes sign, so aggressive I is safer than usual — but keep it small.
+### Tuning I and D
 
-### Tuning D (derivative)
+- **I** — only needed for steady-state error (stops a couple of cm short and P alone won't fix it). Start at `0.001`. The loop resets the integral when the error changes sign, so windup is limited — but keep it small anyway.
+- **D** — only needed if the robot oscillates around the target. Start at `0.01` and increase until the wobble is damped. Too much D makes motion sluggish and buzzy.
 
-Only needed if the robot oscillates around the target. Start at `0.01` and increase until the wobble is damped. Too much D makes the motion sluggish and buzzy.
+Start from your builder's values (defaults are `0.05` P) and step by `0.01`.
 
-### Min power (the deadband)
+### Builder line
 
-The smallest power that still overcomes static friction. If it's too low, the robot shudders at low speeds; too high, it can't do slow precision moves.
+`.drivePid(kp, ki, kd)` — see [Configuration Reference](configuration.md#robot-relative-pid).
 
-**RB runs the automatic deadband search:** the tuner ramps power up until the odometry reports movement, then sets `minPower` to a safe value above that. Watch the result in telemetry — you can type a fine-tuned value straight into the Dashboard.
+%%%tab Strafe PID
 
-### Pass criteria
+### What it tunes
 
-- Drive / strafe: stops within a few cm of 100 cm without sustained oscillation
-- Turn: settles within ~2° of 90°
-- Min power: robot starts moving consistently at the deadband value
+`strafeKp`, `strafeKi`, `strafeKd` — the closed-loop gains on **lateral distance error**, per **meter**.
 
----
+### The test
 
-## Step 6 · Auto path (square test)
+- **Triangle** until the test reads **Strafe**
+- **D-pad ← / →** — pick the term: **P → I → D**
+- **D-pad ↑ / ↓** — adjust
+- **RB** — **strafes 100 cm** to the right and stops, holding the starting heading
 
-**Purpose:** validate odometry + PID + path following together, and pick a good default move speed.
+Same live telemetry as Drive: Error (cm), Power, P/I/D terms, robot drawn on the field view.
 
-**What to do:**
+### Read the result
 
-- **D-pad ↑ / ↓** — adjust `moveSpeed`
-- **RB** — the robot follows a 1 m square (0,0 → 100,0 → 100,100 → 0,100 → 0,0) with pure pursuit
+| Symptom | Fix |
+|---|---|
+| Stops short of the strafe | **Increase P** |
+| Overshoots / slides past and oscillates | **Decrease P** |
+| Drifts forward/back while strafing | Not PID — re-check [Track width](#md-tab-track-width) and [Center offset](#md-tab-center-offset) |
+| Stops a couple of cm short consistently | Add a little **I** |
+| Wobbles at the end | Add **D** |
 
-**What to watch:**
+### Pass
 
-- Returns near its start → good
-- Overshoots corners → lower `moveSpeed` or `followDistanceCm` (Dashboard)
-- Cuts corners → raise `followDistanceCm`
-- Sluggish → raise `moveSpeed`
+Stops within a few cm of the 100 cm strafe without sustained oscillation or heading drift.
 
-**Pass:** the robot completes the square and ends within ~10 cm of where it started.
+### Tips
 
----
+Strafe usually needs a **bit more push** than drive (same P, or slightly higher) because wheels have more friction sideways. If strafing drifts into an arc, the odometry values are wrong — fix track width / center offset before touching these gains.
 
-## Step 7 · Finish
+### Builder line
 
-The tuner shows the complete tuned values as **builder lines** for your robot's `builder()` (`MyRobot` is just the example name — any class extending `CrawlerRobot` works). Press **Square** any time to see them:
+`.strafePid(kp, ki, kd)` — see [Configuration Reference](configuration.md#robot-relative-pid).
+
+%%%tab Turn PID
+
+### What it tunes
+
+`steerP`, `steerI`, `steerD` — the closed-loop gains on **heading error**, per **degree**. These same gains hold the heading while the robot drives *and* turn in place.
+
+### The test
+
+- **Triangle** until the test reads **Turn**
+- **D-pad ← / →** — pick the term: **P → I → D**
+- **D-pad ↑ / ↓** — adjust (P step 0.005, I step 0.0005, D step 0.01)
+- **RB** — turns **90°** from the current heading and settles
+
+Telemetry streams Error (deg), Power, and P/I/D.
+
+### Read the result
+
+| Symptom | Fix |
+|---|---|
+| Stops short of 90° | **Increase P** |
+| Overshoots, swings past, oscillates | **Decrease P** |
+| Never quite settles on the heading | Add a little **I** |
+| Wobbles around the heading | Add **D** |
+
+### Pass
+
+Settles within **~2°** of the 90° target without overshoot wobble.
+
+### Tips
+
+- Defaults are smaller than drive/strafe (`0.03` P) because gains are per **degree**, a much smaller error unit than meters.
+- Turn gains are also what keeps the robot pointed straight during a path leg — an unstable `steerP` shows up as zig-zagging on straights.
+
+### Builder line
+
+`.steerPid(p, i, d)` — see [Configuration Reference](configuration.md#robot-relative-pid).
+
+%%%tab Min power
+
+### What it tunes
+
+`minPower` — the **smallest power that still overcomes static friction**. Below it, the robot's motors may not move at all; too high, and slow precision moves become impossible.
+
+### The test
+
+- **Triangle** until the test reads **Min power**
+- **RB** — runs an **automatic deadband search**: the tuner ramps raw power from `0.05` upward in `0.02` steps until odometry reports the robot moving, then sets `minPower` to a safe value a little above that (clamped to `0.05 – 0.4`)
+
+### Read the result
+
+Telemetry reports:
+
+```
+Starts moving at 0.14 power
+Recommended minPower 0.17
+```
+
+The recommended value is written straight into `minPower`. Nudge it with the D-pad or type a fine-tuned value into the Dashboard — then press **RB** again to confirm.
+
+### Pass
+
+The robot starts moving consistently at the deadband value, and slow precision moves are smooth.
+
+### Tips
+
+- Too **low** → the robot shudders at low speeds.
+- Too **high** → it can't do slow, precise final alignments.
+- This is a *measurement*, not an engine call — it drives the motors directly, then stores the result in the same `minPower` the engine reads.
+
+### Builder line
+
+`.minPower(x)` — see [Configuration Reference](configuration.md#robot-relative-pid).
+
+%%%tab Auto path
+
+### What it tunes
+
+`moveSpeed` (the `defaultMoveSpeed` used between waypoints), plus `followDistanceCm` and `turnSpeed` from the Dashboard. This test validates **odometry + PID + path following together** — if everything before this passed, the only knob left is how fast and how far ahead to look.
+
+### The test
+
+- **D-pad ↑ / ↓** — adjust `moveSpeed` (0.05 steps, 0.1–1.0)
+- **RB** — the robot follows a **1 m square** with pure pursuit: (0,0) → (100,0) → (100,100) → (0,100) → (0,0)
+
+### Read the result
+
+| What you see | Fix |
+|---|---|
+| Returns near its start | Good — tune speed to taste |
+| Overshoots corners | Lower `moveSpeed` or `followDistanceCm` |
+| Cuts corners | Raise `followDistanceCm` |
+| Sluggish / slow | Raise `moveSpeed` |
+
+When the square finishes, the tuner says **"Path done — copy pathDefaults into your robot"**.
+
+### Pass
+
+Completes the square and ends within **~10 cm** of where it started.
+
+### Tips
+
+- `followDistanceCm` is the pure-pursuit look-ahead radius — a bigger radius smooths and cuts corners; a smaller one corners tighter but can jitter.
+- Leave `turnSpeed` and `followDistanceCm` on the Dashboard while you pick `moveSpeed`, then type the final numbers in.
+
+### Builder line
+
+`.pathDefaults(move, turn, follow)` — plus the arrival/orbit/timeout values printed at [Finish](#md-tab-finish).
+
+%%%tab Finish
+
+### What it tunes
+
+Nothing — this is the **output step**. Press **Square** any time, or press **Circle** through to Step 7, to see every tuned value as copy-paste **builder lines** for your robot's `builder()`:
 
 ```java
 // Paste into your robot's builder(), replacing the tuned values below:
@@ -207,32 +393,38 @@ The tuner shows the complete tuned values as **builder lines** for your robot's 
 .maxDriveSpeed(1.0000)
 ```
 
-(`.slowSpeeds(...)` / `.slowDownTurn(...)` are only printed when your robot uses them.)
+`.slowSpeeds(...)` and `.slowDownTurn(...)` are only printed if your robot uses slow mode.
 
-1. Copy the lines into the tuned section of your robot's `builder()`
+### After the tuner
+
+1. Copy the lines into the **tuned section of your robot's `builder()`**
 2. Rebuild and deploy
-3. Run **Crawler Smoke Test** to confirm the robot builds and odometry moves
-4. Run **Crawler System Test** for a full validation (drive, strafe, square)
+3. Run **Crawler Smoke Test** (2 min) to confirm the robot builds and odometry reports movement
+4. Run **Crawler System Test** (~15 min) for a full drive / strafe / square validation
 
-> ⚠️ **This step is mandatory.** Tuning values live only in the tuner's memory while the app runs. There are no library defaults — until you paste them into your robot's `builder()` and rebuild, the robot keeps whatever (possibly unset) values it had.
+> ⚠️ **This step is mandatory.** Tuning values live only in the tuner's memory while the app runs — there are **no library presets**. Until you paste the printed lines into `builder()` and rebuild, the robot keeps whatever (possibly unset) values it had.
+
+%%%endtabs
 
 ## Troubleshooting common tuning issues
 
 | Problem | Likely cause | Fix |
 |---|---|---|
-| Motor spins backward (Step 1) | Wiring / inversion | Add `.invert…()` in the builder |
-| Robot "spins" in its pose estimate | Track width wrong | Step 3 |
-| Robot rotates while strafing | Center offset wrong | Step 4 |
-| Stops short of every target | P too low or minPower too high | Step 5 |
-| Oscillates around targets | P too high (or needs D) | Lower P, add D |
-| Odom distance ≠ real distance | Wheel diameter / ticks per rev | Step 2 |
-| Path overshoots corners | moveSpeed / followDistance too high | Step 6 / Dashboard |
+| Motor spins backward | Wiring / inversion | [Motors](#md-tab-motors) — add `.invert…()` |
+| Robot "spins" in its pose estimate | Track width wrong | [Track width](#md-tab-track-width) |
+| Robot rotates while strafing | Center offset wrong | [Center offset](#md-tab-center-offset) |
+| Every distance is short/long by a ratio | Wheel diameter / ticks per rev | [Encoders](#md-tab-encoders) |
+| Stops short of every target | P too low, or minPower too high | [Drive / Strafe PID](#md-tab-drive-pid) |
+| Oscillates around targets | P too high, or needs D | [PID tabs](#md-tab-drive-pid) |
+| Zig-zags on straights | Turn PID unstable | [Turn PID](#md-tab-turn-pid) |
+| Path overshoots corners | moveSpeed / followDistance too high | [Auto path](#md-tab-auto-path) |
 | Path is jerky at corners | followDistance too low | Raise `followDistanceCm` |
 
 ---
 
 ## Next Steps
 
+- **[Tuning overview →](tuning.md)** Why tuning matters and how the workflow fits together
 - **[Configuration Reference →](configuration.md)** What every value does
 - **[FTC Dashboard →](ftc-dashboard.md)** Editing values live in the browser
 - **[Troubleshooting →](troubleshooting.md)** General problems

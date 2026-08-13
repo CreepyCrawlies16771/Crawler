@@ -96,7 +96,7 @@ public class BasketAuto extends LinearOpMode {
 
 ## Tuning the moves
 
-The gains are the same values the [tuner](tuning-guide.md#step-5--pid-drive--strafe--turn--min-power) adjusts:
+The gains are the same values the [tuner](tuning-guide.md#md-tab-drive-pid) adjusts:
 
 - `drivePid(kp, ki, kd)` → per-meter gains for `drivePID`
 - `strafePid(kp, ki, kd)` → per-meter gains for `strafePID`
