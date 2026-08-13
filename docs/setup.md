@@ -29,8 +29,18 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.teamcode.Crawler.core.Robot.CrawlerRobot;
+import org.firstinspires.ftc.teamcode.Crawler.core.Robot.CrawlerRobotRegistry;
 
 public class MyRobot extends CrawlerRobot {
+
+    // Registers your robot class so Crawler's tools (Tuner, System Test, Smoke Test) can
+    // build it without hard-coding this class's name — see "Register your robot" below.
+    static {
+        CrawlerRobotRegistry.setProvider(
+                MyRobot::new,
+                (hwMap, config) -> builder(hwMap).withConfig(config).build()
+        );
+    }
 
     // ===== REQUIRED: change these to match your Driver Hub configuration names =====
     public static final String FRONT_LEFT = "fl";
@@ -105,6 +115,17 @@ public class MyRobot extends CrawlerRobot {
         clawServo.setPosition(0.2);
     }
 
+    public void setLift(int height) {
+        liftMotor.setTargetPosition(height * 100);
+        liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        liftMotor.setPower(0.5);
+    }
+
+    public void stopLift() {
+        liftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        liftMotor.setPower(0);
+    }
+
     public void scoreHighBasket() {
         liftMotor.setTargetPosition(800);
         liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -115,21 +136,17 @@ public class MyRobot extends CrawlerRobot {
 
 ## Register your robot with the Crawler tooling
 
-The Crawler Tuner, System Test and Smoke Test build **your** robot — they never
-hard-code the shipped example class. Add a static block to your robot class that
-registers it with `CrawlerRobotRegistry`:
+The static block at the top of `MyRobot` (in the example above) is what lets the
+Crawler Tuner, System Test and Smoke Test build **your** robot — they never hard-code
+the shipped example class. If you write your own robot class from scratch, copy the
+block and point it at your own builder:
 
 ```java
-import org.firstinspires.ftc.teamcode.Crawler.core.Robot.CrawlerRobotRegistry;
-
-public class MyRobot extends CrawlerRobot {
-    static {
-        CrawlerRobotRegistry.setProvider(
-            MyRobot::new,
-            (hwMap, config) -> MyRobot.builder(hwMap).withConfig(config).build()
-        );
-    }
-    // ... rest of your robot
+static {
+    CrawlerRobotRegistry.setProvider(
+        MyRobot::new,
+        (hwMap, config) -> builder(hwMap).withConfig(config).build()
+    );
 }
 ```
 
@@ -158,7 +175,6 @@ clear error telling you exactly what to add.
     <option value="two-dead-wheel">Two dead wheels — 2 shaft encoders</option>
     <option value="three-dead-wheel">Three dead wheels — 3 shaft encoders</option>
     <option value="pinpoint">GoBILDA Pinpoint — I2C module + 2 pods</option>
-    <option value="dev">DevLocaliser — no odometry (simulated)</option>
   </select>
   <p class="hw-hint" data-hw-hint aria-live="polite">Pick your hardware to focus the page on just its setup — every localizer's full details are below.</p>
 </div>
@@ -505,36 +521,6 @@ The Crawler Tuner's encoder steps (2–4) **don't drive the Pinpoint** — the m
 - Robot drives sideways when it should go forward → pods or `xDirection`/`yDirection` are wrong
 - Pose doesn't move at all → module not powered (v2!) or the I2C device name doesn't match
 - `wheelDiameter` / `ticksPerRev` have no effect on the Pinpoint — don't fight the tuner's Step 2, set the pod type in `.setConfig`
-
-</div>
-
-<div class="hw-panel" data-hw-panel="dev">
-
-### 5 · DevLocaliser (simulated)
-
-*No odometry hardware — for testing movement logic before encoders exist.*
-
-#### What you need
-
-Nothing. No encoders, no module — this is a simulated pose that lives only in code.
-
-#### How it works
-
-`DevLocaliser` starts wherever you put it with `resetPose()` / `startPose()` and **never moves on its own**. It's for bench-testing and unit tests: your code, your paths, and your motors run exactly as they will in a match — only the pose doesn't change unless you tell it to.
-
-#### MyRobot.java
-
-Swap the localizer line:
-
-```java
-.motors()
-// ---- Localizer (simulated — no hardware) ----
-.withDevLocaliser()
-```
-
-#### Common issues
-
-- The robot's pose won't change when the robot moves — that's expected. Switch to a real localizer before testing on the floor.
 
 </div>
 

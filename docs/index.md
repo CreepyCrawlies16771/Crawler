@@ -126,7 +126,7 @@ When you finish, the tuner prints the exact tuned values as **builder lines** to
 TeamCode/src/main/java/org/firstinspires/ftc/teamcode/
 ├── Crawler/                          ← the library (read, don't break)
 │   ├── core/Robot/CrawlerRobot.java  ← the robot + builder + Config
-│   ├── core/Localizers/              ← 5 localizers (3DW, 2DW, Pinpoint, motors, dev)
+│   ├── core/Localizers/              ← 4 localizers (3DW, 2DW, Pinpoint, motors)
 │   ├── core/utils/                   ← Waypoint, Point, Vector2d, CrawlerMath, UnitConverter
 │   ├── FieldOrient/                  ← FOFollower + RobotMovement (pure pursuit)
 │   ├── RobotOrient/                  ← RobotOrientedDrive + ROMovementEngine

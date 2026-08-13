@@ -30,8 +30,18 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.teamcode.Crawler.core.Robot.CrawlerRobot;
+import org.firstinspires.ftc.teamcode.Crawler.core.Robot.CrawlerRobotRegistry;
 
 public class MyRobot extends CrawlerRobot {
+
+    // Registers this robot class so Crawler's tools (Tuner, System Test, Smoke Test)
+    // can build it without hard-coding this class's name.
+    static {
+        CrawlerRobotRegistry.setProvider(
+                MyRobot::new,
+                (hwMap, config) -> builder(hwMap).withConfig(config).build()
+        );
+    }
 
     public static final String FRONT_LEFT = "fl";
     public static final String FRONT_RIGHT = "fr";
@@ -83,6 +93,7 @@ public class MyRobot extends CrawlerRobot {
                 .arrivalThresholdCm(5.0)
                 .orbitThresholdCm(25.4)
                 .timeoutSecs(5.0)
+                .turnReferenceRadians(Math.toRadians(30))
                 .maxDriveSpeed(1.0);
     }
 
@@ -92,6 +103,17 @@ public class MyRobot extends CrawlerRobot {
 
     public void closeClaw() {
         clawServo.setPosition(0.2);
+    }
+
+    public void setLift(int height) {
+        liftMotor.setTargetPosition(height * 100);
+        liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        liftMotor.setPower(0.5);
+    }
+
+    public void stopLift() {
+        liftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        liftMotor.setPower(0);
     }
 
     public void scoreHighBasket() {

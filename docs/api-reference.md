@@ -14,7 +14,7 @@ This is the ground-truth reference. If a doc page and this page disagree, this p
 | Package | What lives there |
 |---|---|
 | `Crawler.core.Robot` | `CrawlerRobot` (the robot + builder + `Config`) |
-| `Crawler.core.Localizers` | 5 localizers (3 dead wheel, 2 dead wheel, Pinpoint, motor encoders, dev) |
+| `Crawler.core.Localizers` | 4 localizers (3 dead wheel, 2 dead wheel, Pinpoint, motor encoders) |
 | `Crawler.core.utils` | `Waypoint`, `Point`, `Vector2d`, `CrawlerMath`, `UnitConverter` |
 | `Crawler.core.errors` | `CrawlerError`, `CrawlerErrors`, `CrawlerPreflight`, `CrawlerErrorException` |
 | `Crawler.FieldOrient` | `FOFollower`, `RobotMovement` (pure pursuit) |
@@ -53,7 +53,7 @@ The builder is **staged** — each stage only exposes the calls valid at that po
 | Stage | Methods | Ends with |
 |---|---|---|
 | Motor names | `.frontLeft(name)` `.frontRight(name)` `.backLeft(name)` `.backRight(name)` `.imu(name)` `.imuOrientation(logo, usb)` `.invertFrontLeft()` `.invertFrontRight()` `.invertBackLeft()` `.invertBackRight()` | `.motors()` |
-| Localizer | `.withMotorEncoders()` · `.withSimulatedLocaliser()` · `.withDevLocaliser()` · `.withThreeDeadWheels(l, r, c)` · `.withTwoDeadWheels(l, c)` · `.withPinpoint(name)` | varies |
+| Localizer | `.withMotorEncoders()` · `.withSimulatedLocaliser()` · `.withThreeDeadWheels(l, r, c)` · `.withTwoDeadWheels(l, c)` · `.withPinpoint(name)` | varies |
 | Localizer config | `.setTrackWidth(in)` · `.setCenterWheelOffset(in)` · `.invertLeftEncoder()` `.invertRightEncoder()` `.invertCenterEncoder()` · `.setConfig(x, y, unit, pod, xDir, yDir)` (Pinpoint) | `.build()` or `IReadyStage` |
 | Tuning | `.wheelDiameter(in)` `.ticksPerRev(n)` `.drivePid(kp, ki, kd)` `.strafePid(kp, ki, kd)` `.steerPid(p, i, d)` `.minPower(x)` `.pathDefaults(move, turn, followCm)` `.arrivalThresholdCm(cm)` `.orbitThresholdCm(cm)` `.timeoutSecs(s)` `.maxDriveSpeed(x)` | `.build()` |
 
@@ -82,6 +82,7 @@ public static CrawlerRobot.Builder builder(HardwareMap hwMap) {
             .arrivalThresholdCm(5.0)
             .orbitThresholdCm(25.4)
             .timeoutSecs(5.0)
+            .turnReferenceRadians(Math.toRadians(30))
             .maxDriveSpeed(1.0);
 }
 ```
@@ -93,7 +94,7 @@ public static CrawlerRobot.Builder builder(HardwareMap hwMap) {
 | `config` | `CrawlerRobot.Config` | All tuned values, read live by every movement system |
 | `frontLeft` / `frontRight` / `backLeft` / `backRight` | `MotorEx` (FTCLib) | Drive motors — `set(power)` them directly if you need raw control |
 | `imu` | `IMU` | The REV IMU, already initialized with your orientation |
-| `localisation` | `Localisation` | Which localizer was selected (`MotorEncoder`, `TwoDeadWheel`, `ThreeDeadWheel`, `Pinpoint`, `Simulated`, `DevLocaliser`) |
+| `localisation` | `Localisation` | Which localizer was selected (`MotorEncoder`, `TwoDeadWheel`, `ThreeDeadWheel`, `Pinpoint`, `Simulated`) |
 | `localiser` | `CrawlerLocaliser` | The active localizer — `update()`, `getPose()`, `resetPose(pose)` |
 
 ### Public methods
@@ -159,7 +160,6 @@ All five implement `CrawlerLocaliser` (`update()`, `getPose()`, `resetPose(Pose2
 | `PinpointLocaliser` | `.withPinpoint(name)` + `.setConfig(...)` | GoBILDA Pinpoint v1/v2, full config via `.setConfig` |
 | `MotorEncoderLocaliser` | `.withMotorEncoders()` | Uses the four drive motors |
 | `SimulatedLocaliser` | `.withSimulatedLocaliser()` | Simulated mecanum odometry — for JVM integration tests only (`./gradlew :TeamCode:testDebugUnitTest`); never use it as your on-field localizer |
-| `DevLocaliser` | `.withDevLocaliser()` | Simulated pose — for testing without hardware |
 
 **Pinpoint full config:**
 
