@@ -10,7 +10,7 @@ description: A complete, real-world Crawler project — hardware, auto, TeleOp, 
 This page shows the complete set of files you'd write for a season. Copy them, change the device names and coordinates, tune, and you're racing.
 
 ```
-TeamscodeNotLibrary/
+Teamcode/
 ├── MyRobot.java           ← device names + builder config + mechanisms (one file)
 ├── RedAuto.java           ← autonomous path
 ├── Driver.java            ← TeleOp

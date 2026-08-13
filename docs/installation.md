@@ -55,7 +55,7 @@ dependencies {
 ## Step 3: Connect and deploy
 
 1. Connect the robot controller to your computer over USB
-2. Open the example file `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/TeamscodeNotLibrary/ExampleAuto.java` — that `TeamscodeNotLibrary/` folder is *your* code, deliberately kept separate from the `Crawler/` library package, so you can edit it freely
+2. Open the example file `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/Teamcode/Examples/ExampleAuto.java` — that `Teamcode/` folder is *your* code, deliberately kept separate from the `Crawler/` library package, so you can edit it freely
 3. Press the green ▶ next to the class, pick your device, and deploy
 4. On the robot, open the FTC app → select **Example Auto** → **Play**
 
@@ -63,7 +63,7 @@ Your robot should drive a small path. If motors spin the wrong way, that's what 
 
 ## Step 4: Make it yours
 
-1. Edit the device-name constants at the top of `TeamscodeNotLibrary/MyRobot.java` so they match your Driver Hub configuration
+1. Edit the device-name constants at the top of `Teamcode/Examples/MyRobot.java` so they match your Driver Hub configuration
 2. Run the [Crawler Tuner](tuning.md) once before your first real autonomous
 
 ---

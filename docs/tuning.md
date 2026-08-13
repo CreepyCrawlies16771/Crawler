@@ -1,15 +1,42 @@
 ---
 title: Tuning
-description: Teach Crawler exactly how your robot moves with the 7-step guided tuner
+description: Why tuning matters and how to teach Crawler exactly how your robot moves with the 7-step guided tuner
 ---
 
 # Tuning
 
-*The most important step: teaching Crawler how your specific robot behaves*
+*Why tuning matters, what Crawler tunes, and how the 7-step guided tuner works*
+
+## Why tuning matters
 
 Every robot is different. Same chassis, same motors, different wheels — different reality. Without tuning, Crawler's guesses are close but wrong: your robot might drive 22 cm when you asked for 25, or drift sideways while going straight.
 
-The **Crawler Tuner** fixes that. It walks you through seven short tests, and every value can be edited **live in the FTC Dashboard** — you type numbers in the browser, the robot rebuilds itself, and you re-test. No recompiling between adjustments.
+Imagine walking toward a target while blindfolded, believing every stride is exactly 30 cm — but your real stride is 25 cm. You'd stop short every single time. A robot is exactly the same, except it can't feel the floor: it only knows encoder ticks and IMU readings.
+
+Tuning teaches Crawler the truth about **your** robot:
+
+- How wide the odometry wheels are apart (**track width**)
+- How far the center wheel sits from the robot's center (**center offset**)
+- How big the wheels really are and how many ticks a revolution produces (**wheel diameter / ticks per rev**)
+- How much power is needed to overcome friction (**min power**)
+- How aggressively to correct position and heading errors (**PID gains**)
+- How fast to cruise and how far ahead to look (**move speed / follow distance**)
+
+## Why the order matters
+
+You cannot tune PID before odometry is accurate — the PID loop measures its error from odometry, so bad odometry looks like a bad PID controller. And you can't tune path following before the PID loop is stable, because pure pursuit commands drive through the same motors.
+
+```
+Odometry (steps 1–4)  →  PID (step 5)  →  Path following (steps 6–7)
+```
+
+## Before you start
+
+- ✓ Robot fully wired; all device names in `MyRobot.java` match the Driver Hub configuration
+- ✓ Odometry pods mounted, plugged in, spinning freely
+- ✓ 3×3 m clear floor space
+- ✓ Battery above 80% (voltage affects power — tune at competition conditions)
+- ✓ FTC Dashboard open on a laptop on the robot's WiFi
 
 **First tune: ~30–45 minutes.** Re-tuning after a gear swap or rebuild: ~5 minutes.
 

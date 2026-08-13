@@ -47,7 +47,6 @@ public class RedAuto extends LinearOpMode {
 }
 ```
 
-
 ## Tune once, drive forever
 
 Every robot is different: different wheel diameters, different track widths, different friction. The **Crawler Tuner** OpMode runs 7 quick tests, and every value is editable live in the **FTC Dashboard** config panel:
@@ -120,3 +119,57 @@ When you finish, the tuner prints the exact tuned values as **builder lines** to
 4. [Your First TeleOp](first-teleop.md) — driver-controlled movement
 
 **Already familiar?** Jump straight to the [Full Example](example.md) or the [Tuning Guide](tuning-guide.md).
+
+## Where everything lives
+
+```
+TeamCode/src/main/java/org/firstinspires/ftc/teamcode/
+├── Crawler/                          ← the library (read, don't break)
+│   ├── core/Robot/CrawlerRobot.java  ← the robot + builder + Config
+│   ├── core/Localizers/              ← 5 localizers (3DW, 2DW, Pinpoint, motors, dev)
+│   ├── core/utils/                   ← Waypoint, Point, Vector2d, CrawlerMath, UnitConverter
+│   ├── FieldOrient/                  ← FOFollower + RobotMovement (pure pursuit)
+│   ├── RobotOrient/                  ← RobotOrientedDrive + ROMovementEngine
+│   ├── Tuning/                       ← TuningSession + TuningConfig (FTC Dashboard)
+│   └── Dashboard/                    ← field-view drawing helpers
+└── Teamcode/                       ← YOUR code (edit freely)
+    ├── Examples/                     ← MyRobot, ExampleAuto, ExampleTeleOp, ManualAdjustExample
+    └── CrawlerOpModes/               ← CrawlerTuner, CrawlerSmokeTest, CrawlerSystemTest
+```
+
+## The mental model
+
+1. **`CrawlerRobot`** is the chassis. It owns four motors, the IMU, a localizer, and one `Config` object of tuned numbers.
+2. **`MyRobot extends CrawlerRobot`** adds your mechanisms (claw, lift, intake…) via the builder in its constructor. `MyRobot` is just the example name — any subclass of `CrawlerRobot` works, and the library never references it directly.
+3. **OpModes** build a `MyRobot`, then either follow **waypoints** (`FOFollower`) or run precise **PID moves** (`RobotOrientedDrive`).
+4. **The tuner** calibrates the numbers in `Config` so the robot's estimates match reality.
+
+## Precise moves
+
+For short robot-relative moves (nudge forward, align heading), use `ROMovementEngine` as the base class — see [robot-oriented.md](robot-oriented.md):
+
+```java
+// Inside a class that extends ROMovementEngine:
+drivePID(0.30, 0);   // 30 cm forward, hold 0°
+turnPID(45);         // face absolute 45°
+strafePID(0.20, 45); // 20 cm right, hold 45°
+```
+
+## What Crawler is (and isn't)
+
+**Is:** readable, debuggable, source-visible pathing — odometry, robot-relative PID, and pure pursuit, plus a guided tuner.
+
+**Isn't:** a trajectory optimizer, a physics engine, or a magic black box. If you outgrow it, the pure-pursuit loop in `RobotMovement` is a great first read before moving to Road Runner.
+
+## Before you compete
+
+1. No sync needed — the tuner rebuilds your registered robot with live values
+2. Run the **Crawler Tuner** end-to-end and paste the printed builder lines into your robot's `builder()`
+3. Run **Crawler Smoke Test** (2 min) → **Crawler System Test** (15 min)
+4. Tune at competition voltage
+
+## Getting help
+
+- **Docs** — start at [Installation](installation.md), then [Setup](setup.md)
+- **Examples** — `Teamcode/Examples/ExampleAuto.java`, `ExampleTeleOp.java`, `ManualAdjustExample.java`
+- **FTC official** — [ftc-docs.firstinspires.org](https://ftc-docs.firstinspires.org/), [FTC Javadoc](https://javadoc.io/doc/org.firstinspires.ftc)

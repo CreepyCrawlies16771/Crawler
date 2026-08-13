@@ -158,7 +158,7 @@ All five implement `CrawlerLocaliser` (`update()`, `getPose()`, `resetPose(Pose2
 | `TwoWheelLocaliser` | `.withTwoDeadWheels(l, c)` | Requires `.setTrackWidth(...)` |
 | `PinpointLocaliser` | `.withPinpoint(name)` + `.setConfig(...)` | GoBILDA Pinpoint v1/v2, full config via `.setConfig` |
 | `MotorEncoderLocaliser` | `.withMotorEncoders()` | Uses the four drive motors |
-| `SimulatedLocaliser` | `.withSimulatedLocaliser()` | Simulated mecanum odometry — for JVM integration tests (see [Setup → SimulatedLocaliser](setup.md#6--simulatedlocaliser-integration-tests)) |
+| `SimulatedLocaliser` | `.withSimulatedLocaliser()` | Simulated mecanum odometry — for JVM integration tests only (`./gradlew :TeamCode:testDebugUnitTest`); never use it as your on-field localizer |
 | `DevLocaliser` | `.withDevLocaliser()` | Simulated pose — for testing without hardware |
 
 **Pinpoint full config:**

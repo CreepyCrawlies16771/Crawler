@@ -27,7 +27,6 @@ const SITE = {
   releases: 'https://github.com/CreepyCrawlies16771/Crawler/releases',
   branch: 'dev',
   version: 'v1.0.0',
-  // TODO: replace with the team's real Instagram handle before deploying.
   instagram: 'https://www.instagram.com/creepycrawlies16771',
   org: 'Creepy Crawlies · Team 16771',
   license: 'BSD 3-Clause',
@@ -166,7 +165,6 @@ const PAGE_ORDER = [
   'first-auto',
   'first-teleop',
   'example',
-  'tuning-overview',
   'tuning',
   'tuning-guide',
   'configuration',
@@ -175,16 +173,15 @@ const PAGE_ORDER = [
   'api-reference',
   'ftc-dashboard',
   'troubleshooting',
-  'errors',
-  'USER_GUIDE'
+  'errors'
 ];
 
 const NAV_GROUPS = [
   { label: 'Home', pages: ['index'] },
   { label: 'Getting Started', pages: ['installation', 'setup', 'first-auto', 'first-teleop', 'example'] },
-  { label: 'Tuning', pages: ['tuning-overview', 'tuning', 'tuning-guide', 'configuration', 'ftc-dashboard'] },
+  { label: 'Tuning', pages: ['tuning', 'tuning-guide', 'configuration', 'ftc-dashboard'] },
   { label: 'Movement', pages: ['robot-oriented', 'pure-pursuit', 'api-reference'] },
-  { label: 'Help', pages: ['troubleshooting', 'errors', 'USER_GUIDE'] }
+  { label: 'Help', pages: ['troubleshooting', 'errors'] }
 ];
 
 function getTableOfContents() {
@@ -195,9 +192,7 @@ function getTableOfContents() {
     const name = file.replace('.md', '');
     const title = name === 'index'
       ? 'Welcome'
-      : name === 'USER_GUIDE'
-        ? 'User Guide'
-        : name.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      : name.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     byName[name] = { name, htmlFile: name + '.html', title, file };
   });
   const ordered = [];
