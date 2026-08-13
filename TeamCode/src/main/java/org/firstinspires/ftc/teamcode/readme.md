@@ -17,4 +17,4 @@ Only edit files under `Teamcode/` — the `Crawler/` package is the library.
 - Start with `Teamcode/SETUP.md` (30-minute setup).
 - All robot configuration (device names, localizer, tuned values) lives in one
   builder chain in `Teamcode/Examples/MyRobot.java`.
-- Full user documentation is in the repo's `docs/` folder; build it with `npm run build`.
+- Full user documentation is at <https://creepycrawlies16771.github.io/Crawler/>.
