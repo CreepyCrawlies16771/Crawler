@@ -1,0 +1,25 @@
+{
+  "name": "crawler-docs-generator",
+  "version": "1.0.0",
+  "description": "Markdown to HTML generator for Crawler documentation",
+  "main": "generate-docs.js",
+  "scripts": {
+    "build": "npm run build:canvasui && node generate-docs.js",
+    "build:canvasui": "esbuild site/js/canvasui-init.js --bundle --minify --format=esm --target=es2020 --loader:.js=ts --outfile=site/js/canvasui-bundle.js",
+    "watch": "node generate-docs.js --watch",
+    "serve": "node serve-docs.js",
+    "start": "node serve-docs.js",
+    "dev": "node serve-docs.js"
+  },
+  "dependencies": {
+    "marked": "^11.0.0",
+    "highlight.js": "^11.8.0"
+  },
+  "devDependencies": {
+    "chokidar": "^3.5.3",
+    "esbuild": "^0.25.0"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true
+  }
+}

@@ -1,140 +1,129 @@
 ---
 title: Robot-Oriented Movement
-description: Simple step-by-step commands for precise motion
+description: Precise drivePID, strafePID, and turnPID moves with ROMovementEngine
 ---
 
 # Robot-Oriented Movement
 
 *Telling your robot exactly what to do, step by step*
 
-## What Is Robot-Oriented Movement?
+Pure pursuit is great for long, flowing paths. But for the last few centimeters before a mechanism action — parking, lining up with a basket, backing away — you want simple, predictable commands: *drive 30 cm forward, turn to 45°, strafe 20 cm right*. That's what `RobotOrientedDrive` gives you, driven through the `ROMovementEngine` base class.
 
-Instead of giving waypoints, you give simple commands:
+## The three commands
 
-```java
-driveForward(24);           // Drive 24 inches forward
-strafeLeft(12);             // Slide 12 inches left
-turnClockwise(90);          // Turn 90 degrees right
-```
+| Command | What it does | Units |
+|---|---|---|
+| `drivePID(meters, headingDeg)` | Drive forward/back while holding a heading | distance in **meters**, heading in **degrees** |
+| `strafePID(meters, headingDeg)` | Strafe left/right while holding a heading | positive = right |
+| `turnPID(headingDeg)` | Turn in place to an **absolute** heading | degrees (IMU-based) |
 
-This is more predictable and easier to debug than pure pursuit. It's great for learning, for very precise end-game moves, and for when your path is simple.
+All three are blocking (they finish before the next line runs), use `config.timeoutSecs` as a safety timeout, and clamp power to ±0.7 with the `minPower` deadband.
 
-## When to Use It
+## The pattern: extend `ROMovementEngine`
 
-- **End-game parking** — park exactly in the right spot
-- **Picking up game elements** — drive to a specific location
-- **Fine adjustments** — get your robot lined up perfectly
-- **Learning** — understand what your robot is doing
-
-Save pure pursuit for the long, smooth drives. Use robot-oriented for the precise final moves.
-
-## The Commands
-
-Here are the three main commands:
-
-### `drivePID(distance, heading)`
-
-Drive in a straight line while maintaining a specific heading (rotation angle).
+`ROMovementEngine` wires up `MyRobot`, waits for start, resets the pose, and calls your `runPath()`:
 
 ```java
-ro.drivePID(24, 0);  // Drive 24 inches forward, stay facing forward (0 degrees)
-```
+package org.firstinspires.ftc.teamcode.Teamcode;
 
-**Why have both distance and heading?** If your robot drifts during the drive, this command will correct it automatically.
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 
-Parameters:
+import org.firstinspires.ftc.teamcode.Crawler.RobotOrient.ROMovementEngine;
+import org.firstinspires.ftc.teamcode.Crawler.core.Robot.CrawlerRobot;
 
-- `distance` — inches (positive = forward, negative = backward)
-- `heading` — degrees (0 = forward, 90 = right, 180 = backward, 270 = left)
+@Autonomous(name = "Manual Adjust", group = "Crawler Tests")
+public class ManualAdjust extends ROMovementEngine {
 
-### `strafePID(distance, heading)`
+    @Override
+    protected CrawlerRobot buildRobot(HardwareMap hwMap) {
+        return new MyRobot(hwMap);      // your configured robot
+    }
 
-Slide sideways while maintaining a heading.
+    @Override
+    public void runPath() throws InterruptedException {
+        // 30 cm forward, hold 0°
+        drivePID(0.30, 0);
 
-```java
-ro.strafePID(12, 0);  // Slide 12 inches right, stay facing forward
-```
+        // Turn to an absolute heading of 45°
+        turnPID(45);
 
-Same parameters as `drivePID`. Use `positive` for right, `negative` for left.
+        // 20 cm right, hold 45° while moving
+        strafePID(0.20, 45);
 
-### `turnPID(degrees)`
-
-Rotate in place to face a new direction.
-
-```java
-ro.turnPID(90);  // Turn 90 degrees clockwise
-```
-
-## Example Autonomous
-
-Combine commands to build a complete autonomous:
-
-```java
-@Override
-public void runPath() throws InterruptedException {
-    // Reach the goal
-    ro.drivePID(24, 0);      // Drive forward 24 inches
-    ro.strafePID(12, 0);     // Strafe right 12 inches
-    
-    // Turn to face the basket
-    ro.turnPID(45);
-    
-    // Back up to line up with target
-    ro.drivePID(-6, 45);     // Reverse 6 inches
-    
-    // Open the claw to drop the specimen
-    robot.openClaw();
-    sleep(500);              // Wait 0.5 seconds
-    
-    // Retreat
-    ro.drivePID(-24, 45);
+        // Reach the mechanism
+        MyRobot robot = (MyRobot) this.robot;
+        robot.openClaw();
+    }
 }
 ```
 
-Each command waits for completion before running the next one. That's why this is so predictable.
+## Mixing with pure pursuit
 
-## Mixing Pure Pursuit and Robot-Oriented
-
-You don't have to choose. Use both in the same autonomous:
+The best of both worlds — long drives as waypoints, precise finishes as PID moves:
 
 ```java
-@Override
-public void runPath() throws InterruptedException {
-    // Long smooth drive using pure pursuit
-    follower.follow(
-        Waypoint.at(0, 12).heading(0).buildAll(),
-        Waypoint.at(24, 36).heading(45).buildAll(),
-        Waypoint.at(48, 36).heading(45).slow().buildAll()
-    );
-    
-    // Final precise adjustment using robot-oriented
-    ro.turnPID(0);           // Face forward exactly
-    ro.drivePID(6, 0);       // Move forward 6 more inches
-    robot.openClaw();
+@Autonomous(name = "Basket Auto", group = "Main")
+public class BasketAuto extends LinearOpMode {
+
+    @Override
+    public void runOpMode() throws InterruptedException {
+        MyRobot robot = new MyRobot(hardwareMap);
+        FOFollower follower = new FOFollower(robot, telemetry, this::opModeIsActive);
+        RobotOrientedDrive ro = new RobotOrientedDrive(robot, this::opModeIsActive, telemetry);
+
+        waitForStart();
+
+        robot.resetPose();   // required before following (CRWL-101 otherwise)
+
+        // Long, smooth approach
+        follower.follow(
+            Waypoint.at(0, 0, robot.config).build(),
+            Waypoint.at(80, 40, robot.config).speed(0.8).build()
+        );
+
+        // Precise final alignment
+        ro.turnPID(90);          // face the basket
+        ro.drivePID(0.15, 90);   // inch in 15 cm
+        robot.scoreHighBasket();
+
+        // Retreat
+        ro.drivePID(-0.3, 90);
+        robot.stop();
+    }
 }
 ```
 
-> 💡 **Best practice:** Use pure pursuit for the long drives, robot-oriented for the precise final alignments.
+## Tuning the moves
 
-## Tips for Accuracy
+The gains are the same values the [tuner](tuning-guide.md#step-5--pid-drive--strafe--turn--min-power) adjusts:
 
-**Always realign heading after a path.**
+- `drivePid(kp, ki, kd)` → per-meter gains for `drivePID`
+- `strafePid(kp, ki, kd)` → per-meter gains for `strafePID`
+- `steerPid(p, i, d)` → per-degree gains for `turnPID` and heading hold
+- `minPower` → deadband so tiny errors still move the robot
 
-When you finish a pure pursuit path, your robot might not be facing exactly the direction you want. Lock it in with a turn:
+| Symptom | Fix |
+|---|---|
+| Stops short consistently | Raise P, or add a little I |
+| Oscillates around the target | Lower P, or add D |
+| Drifts off heading while driving | Raise `steerP` |
+| Wobbles side to side | Lower `steerP` |
 
-```java
-follower.follow(/* your path */);
-ro.turnPID(0);  // Face forward exactly
-```
+> 💡 **Keep robot-relative moves short** (under ~1 m). For long travel, pure pursuit is smoother and uses odometry better.
 
-**Keep robot-oriented moves short.**
+## When to use which
 
-Moves under 24 inches work best. For longer distances, use pure pursuit.
-
-**If movement seems jerky,** increase the motion profile time in your configuration. Your coach can help with this.
+| Situation | Use |
+|---|---|
+| Long field traversal | `FOFollower` + waypoints |
+| Final alignment before a mechanism | `drivePID` / `strafePID` / `turnPID` |
+| Driving in TeleOp | `robot.driveFieldRelative(...)` |
+| Raw motor control | `robot.drive(forward, strafe, rotate)` |
 
 ---
 
 ## Next Steps
 
-**[Pure Pursuit →](pure-pursuit.md)** Learn to build smooth, flowing paths
+- **[Pure Pursuit →](pure-pursuit.md)** The smooth path follower
+- **[Configuration →](configuration.md)** All the PID gains in detail

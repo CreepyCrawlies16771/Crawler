@@ -1,63 +1,73 @@
 ---
 title: Installation
-description: Add Crawler to your FTC project in 4 simple steps
+description: Get Crawler into your FTC project in a few minutes
 ---
 
 # Installation
 
 *Getting Crawler into your Android Studio project*
 
-## What You Need
+## What you need
 
-Before you start, make sure you have:
+- **Android Studio** Ladybug (2024.2) or newer
+- **Java** — you've written at least one OpMode before
+- A **Rev Control Hub** or legal robot controller to deploy to
 
-- **Android Studio** (installed and working)
-- **FTC SDK** (your team's GitHub fork cloned locally)
-- **Basic Java** (you've written at least one OpMode before)
+## Crawler is source, not a dependency
 
-If you don't have the FTC SDK yet, ask your coach or check [FTC's official guide](https://github.com/FIRST-Tech-Challenge/FtcRobotController).
+Crawler ships as **Java source inside the FTC SDK repo** — there is no JitPack artifact to add. The `Crawler` package lives at:
 
-## Step 1: Add JitPack to Repositories
-
-Open the `build.gradle` file in your project root (not the one inside `TeamCode`). Find the `repositories` block and add JitPack. It should look like this after:
-
-```gradle
-repositories {
-    google()
-    mavenCentral()
-    maven { url "https://jitpack.io" }  // Add this line
-}
+```
+TeamCode/src/main/java/org/firstinspires/ftc/teamcode/Crawler/
 ```
 
-**What this does:** JitPack is a service that hosts open source libraries. This tells Android Studio where to find Crawler when we ask for it.
+Because it's source, you can read every file, step through it in the debugger, and modify it — that's the whole point of a learning library.
 
-## Step 2: Add Crawler Dependency
+> **We're keeping Crawler source-only for now!** - Being able to read, step through, and modify every line is the while point of a learning library. A dependency-based install (Jitpack) may come later as an alternative for teams that just want the pathing math without the source, but source-copy will stay the default way to get started
 
-Open `TeamCode/build.gradle`. Find the `dependencies` block and add Crawler:
+## Step 1: Get the repo
+
+```bash
+git clone https://github.com/CreepyCrawlies16771/Crawler.git
+cd Crawler
+```
+
+If you don't use git, click **Download ZIP** on the repo page and unzip it.
+
+## Step 2: Open it in Android Studio
+
+1. **File → Open** and select the `Crawler` folder
+2. Let Gradle sync finish (it downloads the FTC SDK, FTCLib, and FTC Dashboard — a few minutes the first time)
+3. You should see two modules: `FtcRobotController` and `TeamCode`
+
+> ⚠️ **First sync is slow — that's normal.** It can take 10–20+ minutes on a slow connection or a machine that has never built an FTC project before (no cached dependencies). It's downloading the SDK, not a error or a problem. This is excluded form the startup time, since it is out side of our control!.
+
+> 💡 **Already have your own FTC SDK project?** Copy the `Crawler` folder into your `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/` directory, and add these to `TeamCode/build.gradle` if they aren't there already:
 
 ```gradle
 dependencies {
-    // ... your other dependencies ...
-    implementation 'com.github.Fission310:Crawler:1.0.0'
+    implementation project(':FtcRobotController')
+    implementation 'org.ftclib.ftclib:core:2.1.1'
+    implementation 'com.acmerobotics.dashboard:dashboard:0.5.1'
 }
 ```
 
-**What this does:** This tells Android Studio to download Crawler and make it available to your code.
+## Step 3: Connect and deploy
 
-> 📝 **Note:** Replace `1.0.0` with whatever version of Crawler your team is using. Your coach can tell you which one.
+1. Connect the robot controller to your computer over USB
+2. Open the example file `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/Teamcode/Examples/ExampleAuto.java` — that `Teamcode/` folder is *your* code, deliberately kept separate from the `Crawler/` library package, so you can edit it freely
+3. Press the green ▶ next to the class, pick your device, and deploy
+4. On the robot, open the FTC app → select **Example Auto** → **Play**
 
-## Step 3: Sync Gradle
+Your robot should drive a small path. If motors spin the wrong way, that's what [Setup](setup.md) fixes.
 
-Click **File → Sync Now** in Android Studio, or wait for the yellow notification bar to appear and click "Sync Now".
+## Step 4: Make it yours
 
-Your computer will download Crawler and all its dependencies. This might take 30-60 seconds the first time.
-
-## Step 4: Verify
-
-If Android Studio shows **no red errors** in your code, you're ready to go. If you see red wavy lines under anything in the editor, let your coach know.
+1. Edit the device-name constants at the top of `Teamcode/Examples/MyRobot.java` so they match your Driver Hub configuration
+2. Run the [Crawler Tuner](tuning.md) once before your first real autonomous
 
 ---
 
 ## Next Steps
 
-**[Setup →](setup.md)** Write your first three Crawler files: MyRobot, your autonomous, and your TeleOp
+**[Setup →](setup.md)** Create `MyRobot.java`, pick a localizer, and fix motor directions
