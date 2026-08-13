@@ -16,7 +16,7 @@ Road Runner and Pedro Pathing are powerful, but they take days to learn. Crawler
 
 ## Quick start
 
-1. Clone this repo — or copy `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/Crawler/` into your own FTC project.
+1. **New team?** Start from the [`starter` branch](https://github.com/CreepyCrawlies16771/Crawler/tree/starter) — a clean, ready-to-build FTC project with Crawler installed. Otherwise clone this repo — or copy `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/Crawler/` into your own FTC project.
 2. Add the FTCLib and FTC Dashboard dependencies ([Installation](https://creepycrawlies16771.github.io/Crawler/installation.html)).
 3. Create `MyRobot.java` — device names, localizer, and tuned values all live in one builder chain ([Setup](https://creepycrawlies16771.github.io/Crawler/setup.html)).
 4. Run the **Crawler Tuner** once to calibrate odometry and PID to your robot ([Tuning Guide](https://creepycrawlies16771.github.io/Crawler/tuning-guide.html)).
